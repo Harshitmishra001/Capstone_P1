@@ -1,0 +1,61 @@
+{
+  "incident_id": "inc_proc_069",
+  "incident_type": "road_accident",
+  "ground_truth": {
+    "entities": [
+      {
+        "id": "v1",
+        "type": "VEHICLE",
+        "attributes": {
+          "color": "grey",
+          "make": "Toyota"
+        }
+      }
+    ]
+  },
+  "witnesses": [
+    {
+      "witness_id": "w1",
+      "statement": "It was 6:45 PM. I saw a grey Toyota speeding East. It ran the red light and hit a red car.",
+      "perception": {
+        "color": "grey",
+        "ran_red": true,
+        "direction": "East"
+      }
+    },
+    {
+      "witness_id": "w2",
+      "statement": "I think it was a grey car. It was heading North. It definitely had a green light before the crash.",
+      "perception": {
+        "color": "grey",
+        "ran_red": false,
+        "direction": "North"
+      }
+    },
+    {
+      "witness_id": "w3",
+      "statement": "I only saw the aftermath. The silver car was completely smashed.",
+      "perception": {
+        "color": "silver"
+      }
+    }
+  ],
+  "labels": [
+    {
+      "claim_pair": [
+        "w1: ran_red(True)",
+        "w2: ran_red(False)"
+      ],
+      "type": "existence",
+      "verdict": "contradiction"
+    },
+    {
+      "claim_pair": [
+        "w1: direction(East)",
+        "w2: direction(North)"
+      ],
+      "type": "motion",
+      "verdict": "contradiction"
+    }
+  ]
+}

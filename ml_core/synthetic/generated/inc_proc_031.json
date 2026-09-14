@@ -1,0 +1,61 @@
+{
+  "incident_id": "inc_proc_031",
+  "incident_type": "road_accident",
+  "ground_truth": {
+    "entities": [
+      {
+        "id": "v1",
+        "type": "VEHICLE",
+        "attributes": {
+          "color": "white",
+          "make": "BMW"
+        }
+      }
+    ]
+  },
+  "witnesses": [
+    {
+      "witness_id": "w1",
+      "statement": "It was 11:00 PM. I saw a white BMW speeding South. It ran the red light and hit a grey car.",
+      "perception": {
+        "color": "white",
+        "ran_red": true,
+        "direction": "South"
+      }
+    },
+    {
+      "witness_id": "w2",
+      "statement": "I'm pretty sure it was a white car. It was heading North. It definitely had a green light before the crash.",
+      "perception": {
+        "color": "white",
+        "ran_red": false,
+        "direction": "North"
+      }
+    },
+    {
+      "witness_id": "w3",
+      "statement": "I only saw the aftermath. The white car was completely smashed.",
+      "perception": {
+        "color": "white"
+      }
+    }
+  ],
+  "labels": [
+    {
+      "claim_pair": [
+        "w1: ran_red(True)",
+        "w2: ran_red(False)"
+      ],
+      "type": "existence",
+      "verdict": "contradiction"
+    },
+    {
+      "claim_pair": [
+        "w1: direction(South)",
+        "w2: direction(North)"
+      ],
+      "type": "motion",
+      "verdict": "contradiction"
+    }
+  ]
+}

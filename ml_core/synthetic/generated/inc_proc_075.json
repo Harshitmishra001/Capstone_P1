@@ -1,0 +1,69 @@
+{
+  "incident_id": "inc_proc_075",
+  "incident_type": "road_accident",
+  "ground_truth": {
+    "entities": [
+      {
+        "id": "v1",
+        "type": "VEHICLE",
+        "attributes": {
+          "color": "red",
+          "make": "Nissan"
+        }
+      }
+    ]
+  },
+  "witnesses": [
+    {
+      "witness_id": "w1",
+      "statement": "It was 12:30 PM. I saw a red Nissan speeding South. It ran the red light and hit a silver car.",
+      "perception": {
+        "color": "red",
+        "ran_red": true,
+        "direction": "South"
+      }
+    },
+    {
+      "witness_id": "w2",
+      "statement": "From what I saw, it was a silver car. It was heading West. It definitely had a green light before the crash.",
+      "perception": {
+        "color": "silver",
+        "ran_red": false,
+        "direction": "West"
+      }
+    },
+    {
+      "witness_id": "w3",
+      "statement": "I only saw the aftermath. The white car was completely smashed.",
+      "perception": {
+        "color": "white"
+      }
+    }
+  ],
+  "labels": [
+    {
+      "claim_pair": [
+        "w1: color(red)",
+        "w2: color(silver)"
+      ],
+      "type": "attribute",
+      "verdict": "contradiction"
+    },
+    {
+      "claim_pair": [
+        "w1: ran_red(True)",
+        "w2: ran_red(False)"
+      ],
+      "type": "existence",
+      "verdict": "contradiction"
+    },
+    {
+      "claim_pair": [
+        "w1: direction(South)",
+        "w2: direction(West)"
+      ],
+      "type": "motion",
+      "verdict": "contradiction"
+    }
+  ]
+}

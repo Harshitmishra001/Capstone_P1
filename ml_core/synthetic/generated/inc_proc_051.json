@@ -1,0 +1,53 @@
+{
+  "incident_id": "inc_proc_051",
+  "incident_type": "road_accident",
+  "ground_truth": {
+    "entities": [
+      {
+        "id": "v1",
+        "type": "VEHICLE",
+        "attributes": {
+          "color": "silver",
+          "make": "Nissan"
+        }
+      }
+    ]
+  },
+  "witnesses": [
+    {
+      "witness_id": "w1",
+      "statement": "It was 10:00 AM. I saw a silver Nissan speeding East. It ran the red light and hit a blue car.",
+      "perception": {
+        "color": "silver",
+        "ran_red": true,
+        "direction": "East"
+      }
+    },
+    {
+      "witness_id": "w2",
+      "statement": "I think it was a silver car. It was heading South. It ran right through the red light before the crash.",
+      "perception": {
+        "color": "silver",
+        "ran_red": true,
+        "direction": "South"
+      }
+    },
+    {
+      "witness_id": "w3",
+      "statement": "I only saw the aftermath. The silver car was completely smashed.",
+      "perception": {
+        "color": "silver"
+      }
+    }
+  ],
+  "labels": [
+    {
+      "claim_pair": [
+        "w1: direction(East)",
+        "w2: direction(South)"
+      ],
+      "type": "motion",
+      "verdict": "contradiction"
+    }
+  ]
+}

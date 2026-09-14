@@ -1,0 +1,53 @@
+{
+  "incident_id": "inc_proc_006",
+  "incident_type": "road_accident",
+  "ground_truth": {
+    "entities": [
+      {
+        "id": "v1",
+        "type": "VEHICLE",
+        "attributes": {
+          "color": "white",
+          "make": "Chevrolet"
+        }
+      }
+    ]
+  },
+  "witnesses": [
+    {
+      "witness_id": "w1",
+      "statement": "It was 11:00 PM. I saw a white Chevrolet speeding West. It ran the red light and hit a black car.",
+      "perception": {
+        "color": "white",
+        "ran_red": true,
+        "direction": "West"
+      }
+    },
+    {
+      "witness_id": "w2",
+      "statement": "I'm pretty sure it was a white car. It was heading East. It ran right through the red light before the crash.",
+      "perception": {
+        "color": "white",
+        "ran_red": true,
+        "direction": "East"
+      }
+    },
+    {
+      "witness_id": "w3",
+      "statement": "I only saw the aftermath. The black car was completely smashed.",
+      "perception": {
+        "color": "black"
+      }
+    }
+  ],
+  "labels": [
+    {
+      "claim_pair": [
+        "w1: direction(West)",
+        "w2: direction(East)"
+      ],
+      "type": "motion",
+      "verdict": "contradiction"
+    }
+  ]
+}
