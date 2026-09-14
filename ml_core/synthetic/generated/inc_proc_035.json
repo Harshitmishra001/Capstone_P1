@@ -1,0 +1,53 @@
+{
+  "incident_id": "inc_proc_035",
+  "incident_type": "road_accident",
+  "ground_truth": {
+    "entities": [
+      {
+        "id": "v1",
+        "type": "VEHICLE",
+        "attributes": {
+          "color": "silver",
+          "make": "Chevrolet"
+        }
+      }
+    ]
+  },
+  "witnesses": [
+    {
+      "witness_id": "w1",
+      "statement": "It was 11:00 PM. I saw a silver Chevrolet speeding South. It ran the red light and hit a silver car.",
+      "perception": {
+        "color": "silver",
+        "ran_red": true,
+        "direction": "South"
+      }
+    },
+    {
+      "witness_id": "w2",
+      "statement": "From what I saw, it was a silver car. It was heading West. It ran right through the red light before the crash.",
+      "perception": {
+        "color": "silver",
+        "ran_red": true,
+        "direction": "West"
+      }
+    },
+    {
+      "witness_id": "w3",
+      "statement": "I only saw the aftermath. The silver car was completely smashed.",
+      "perception": {
+        "color": "silver"
+      }
+    }
+  ],
+  "labels": [
+    {
+      "claim_pair": [
+        "w1: direction(South)",
+        "w2: direction(West)"
+      ],
+      "type": "motion",
+      "verdict": "contradiction"
+    }
+  ]
+}

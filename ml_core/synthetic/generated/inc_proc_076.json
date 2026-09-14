@@ -1,0 +1,44 @@
+{
+  "incident_id": "inc_proc_076",
+  "incident_type": "road_accident",
+  "ground_truth": {
+    "entities": [
+      {
+        "id": "v1",
+        "type": "VEHICLE",
+        "attributes": {
+          "color": "blue",
+          "make": "Ford"
+        }
+      }
+    ]
+  },
+  "witnesses": [
+    {
+      "witness_id": "w1",
+      "statement": "It was 12:30 PM. I saw a blue Ford speeding West. It ran the red light and hit a black car.",
+      "perception": {
+        "color": "blue",
+        "ran_red": true,
+        "direction": "West"
+      }
+    },
+    {
+      "witness_id": "w2",
+      "statement": "I'm pretty sure it was a blue car. It was heading West. It ran right through the red light before the crash.",
+      "perception": {
+        "color": "blue",
+        "ran_red": true,
+        "direction": "West"
+      }
+    },
+    {
+      "witness_id": "w3",
+      "statement": "I only saw the aftermath. The blue car was completely smashed.",
+      "perception": {
+        "color": "blue"
+      }
+    }
+  ],
+  "labels": []
+}

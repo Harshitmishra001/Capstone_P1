@@ -1,0 +1,53 @@
+{
+  "incident_id": "inc_proc_092",
+  "incident_type": "road_accident",
+  "ground_truth": {
+    "entities": [
+      {
+        "id": "v1",
+        "type": "VEHICLE",
+        "attributes": {
+          "color": "green",
+          "make": "Ford"
+        }
+      }
+    ]
+  },
+  "witnesses": [
+    {
+      "witness_id": "w1",
+      "statement": "It was 6:45 PM. I saw a green Ford speeding West. It ran the red light and hit a silver car.",
+      "perception": {
+        "color": "green",
+        "ran_red": true,
+        "direction": "West"
+      }
+    },
+    {
+      "witness_id": "w2",
+      "statement": "I'm pretty sure it was a green car. It was heading South. It ran right through the red light before the crash.",
+      "perception": {
+        "color": "green",
+        "ran_red": true,
+        "direction": "South"
+      }
+    },
+    {
+      "witness_id": "w3",
+      "statement": "I only saw the aftermath. The blue car was completely smashed.",
+      "perception": {
+        "color": "blue"
+      }
+    }
+  ],
+  "labels": [
+    {
+      "claim_pair": [
+        "w1: direction(West)",
+        "w2: direction(South)"
+      ],
+      "type": "motion",
+      "verdict": "contradiction"
+    }
+  ]
+}

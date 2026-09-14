@@ -1,0 +1,132 @@
+{
+  "incident_id": "inc_gold_002",
+  "incident_type": "robbery_assault",
+  "ground_truth": {
+    "entities": [
+      {
+        "id": "p1",
+        "type": "PERSON",
+        "attributes": {
+          "role": "assailant",
+          "gender": "male",
+          "height": "tall",
+          "weapon": "knife"
+        }
+      },
+      {
+        "id": "p2",
+        "type": "PERSON",
+        "attributes": {
+          "role": "victim",
+          "gender": "male"
+        }
+      },
+      {
+        "id": "v1",
+        "type": "VEHICLE",
+        "attributes": {
+          "role": "getaway",
+          "color": "silver",
+          "make": "Toyota Camry"
+        }
+      }
+    ],
+    "timeline": [
+      {
+        "time": "21:30:00",
+        "action": "approached",
+        "subject": "p1",
+        "object": "p2",
+        "location": "ATM on 5th Ave"
+      },
+      {
+        "time": "21:30:15",
+        "action": "threatened_with",
+        "subject": "p1",
+        "object": "knife"
+      },
+      {
+        "time": "21:31:00",
+        "action": "fled_in",
+        "subject": "p1",
+        "object": "v1",
+        "direction": "North"
+      }
+    ]
+  },
+  "witnesses": [
+    {
+      "witness_id": "w1",
+      "statement": "I was waiting for a cab at around 9:30 PM. I saw a tall man approach another guy at the ATM. He pulled out a knife and demanded money. After he got it, he ran and jumped into a silver Toyota that sped off heading North.",
+      "perception": {
+        "p1_height": "tall",
+        "p1_weapon": "knife",
+        "v1_color": "silver",
+        "v1_make": "Toyota",
+        "v1_direction": "North"
+      }
+    },
+    {
+      "witness_id": "w2",
+      "statement": "I was across the street. The attacker was pretty short, honestly. He definitely had a gun, not a knife. I saw it glint in the street light. He took the money and got into a white sedan, then drove away heading South down 5th Ave.",
+      "perception": {
+        "p1_height": "short",
+        "p1_weapon": "gun",
+        "v1_color": "white",
+        "v1_make": "sedan",
+        "v1_direction": "South"
+      }
+    },
+    {
+      "witness_id": "w3",
+      "statement": "I heard yelling. When I looked, I saw a tall guy holding a knife to someone's back. He grabbed the cash and ran into an alleyway on foot. There was no car involved.",
+      "perception": {
+        "p1_height": "tall",
+        "p1_weapon": "knife",
+        "v1_involved": false
+      }
+    }
+  ],
+  "labels": [
+    {
+      "claim_pair": [
+        "w1: p1_height(tall)",
+        "w2: p1_height(short)"
+      ],
+      "type": "attribute",
+      "verdict": "contradiction"
+    },
+    {
+      "claim_pair": [
+        "w1: p1_weapon(knife)",
+        "w2: p1_weapon(gun)"
+      ],
+      "type": "attribute",
+      "verdict": "contradiction"
+    },
+    {
+      "claim_pair": [
+        "w1: v1_color(silver)",
+        "w2: v1_color(white)"
+      ],
+      "type": "attribute",
+      "verdict": "contradiction"
+    },
+    {
+      "claim_pair": [
+        "w1: v1_direction(North)",
+        "w2: v1_direction(South)"
+      ],
+      "type": "motion",
+      "verdict": "contradiction"
+    },
+    {
+      "claim_pair": [
+        "w1: fled_in(v1)",
+        "w3: v1_involved(False)"
+      ],
+      "type": "existence",
+      "verdict": "contradiction"
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "incident_id": "inc_proc_040",
+  "incident_type": "road_accident",
+  "ground_truth": {
+    "entities": [
+      {
+        "id": "v1",
+        "type": "VEHICLE",
+        "attributes": {
+          "color": "blue",
+          "make": "Honda"
+        }
+      }
+    ]
+  },
+  "witnesses": [
+    {
+      "witness_id": "w1",
+      "statement": "It was 11:00 PM. I saw a blue Honda speeding West. It ran the red light and hit a grey car.",
+      "perception": {
+        "color": "blue",
+        "ran_red": true,
+        "direction": "West"
+      }
+    },
+    {
+      "witness_id": "w2",
+      "statement": "I'm pretty sure it was a blue car. It was heading East. It definitely had a green light before the crash.",
+      "perception": {
+        "color": "blue",
+        "ran_red": false,
+        "direction": "East"
+      }
+    },
+    {
+      "witness_id": "w3",
+      "statement": "I only saw the aftermath. The blue car was completely smashed.",
+      "perception": {
+        "color": "blue"
+      }
+    }
+  ],
+  "labels": [
+    {
+      "claim_pair": [
+        "w1: ran_red(True)",
+        "w2: ran_red(False)"
+      ],
+      "type": "existence",
+      "verdict": "contradiction"
+    },
+    {
+      "claim_pair": [
+        "w1: direction(West)",
+        "w2: direction(East)"
+      ],
+      "type": "motion",
+      "verdict": "contradiction"
+    }
+  ]
+}

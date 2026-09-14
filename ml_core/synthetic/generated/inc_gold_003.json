@@ -1,0 +1,82 @@
+{
+  "incident_id": "inc_gold_003",
+  "incident_type": "fire",
+  "ground_truth": {
+    "entities": [
+      {
+        "id": "loc1",
+        "type": "LOCATION",
+        "attributes": {
+          "building_type": "warehouse"
+        }
+      },
+      {
+        "id": "p1",
+        "type": "PERSON",
+        "attributes": {
+          "role": "arsonist",
+          "clothing": "dark jacket"
+        }
+      }
+    ],
+    "timeline": [
+      {
+        "time": "02:15:00",
+        "action": "started_fire",
+        "subject": "p1",
+        "location": "loading dock"
+      },
+      {
+        "time": "02:20:00",
+        "action": "exploded",
+        "subject": "loc1"
+      }
+    ]
+  },
+  "witnesses": [
+    {
+      "witness_id": "w1",
+      "statement": "I work the night shift nearby. Around 2:15 AM, I saw someone in a dark jacket throw something at the loading dock, and suddenly there was a massive fire. About five minutes later, there was a huge explosion.",
+      "perception": {
+        "fire_start_time": "02:15",
+        "p1_clothing": "dark jacket",
+        "explosion_occurred": true
+      }
+    },
+    {
+      "witness_id": "w2",
+      "statement": "I noticed the flames around 3:00 AM. It started on the roof, not the loading dock. I didn't see anyone around. The building just burned, there was absolutely no explosion at all.",
+      "perception": {
+        "fire_start_time": "03:00",
+        "fire_start_location": "roof",
+        "explosion_occurred": false
+      }
+    }
+  ],
+  "labels": [
+    {
+      "claim_pair": [
+        "w1: fire_start_time(02:15)",
+        "w2: fire_start_time(03:00)"
+      ],
+      "type": "temporal",
+      "verdict": "contradiction"
+    },
+    {
+      "claim_pair": [
+        "w1: fire_start_location(loading dock)",
+        "w2: fire_start_location(roof)"
+      ],
+      "type": "spatial",
+      "verdict": "contradiction"
+    },
+    {
+      "claim_pair": [
+        "w1: explosion_occurred(True)",
+        "w2: explosion_occurred(False)"
+      ],
+      "type": "existence",
+      "verdict": "contradiction"
+    }
+  ]
+}
