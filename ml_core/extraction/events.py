@@ -77,7 +77,17 @@ def extract_events_llm(statement: Statement, llm_call: Callable[[str, Optional[s
 
 
 def _extract_with_retry(statement: Statement, llm_call: Callable[[str, Optional[str]], str]) -> Optional[List[PydanticEventTuple]]:
-    prompt = f"Extract events from: {statement.text}"
+    prompt = f"""Extract all events from the following eyewitness testimony.
+Return the result as a strict JSON array of objects. Do not wrap in markdown or add explanations.
+Schema per object:
+- "subject": (string) Who is acting.
+- "action": (string) What they did.
+- "object": (string) The target of the action.
+- "is_explicit_denial": (boolean) True if they explicitly state it did NOT happen.
+- "source_span": (array of 2 ints) [0, 0]
+
+Testimony: "{statement.text}"
+JSON Output:"""
     error_msg = None
     
     for attempt in range(2):
