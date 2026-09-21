@@ -28,8 +28,8 @@ class EventTuple(ExtractedBase):
     subject: Optional[str]
     action: str
     object: Optional[str]
-    time_ref: Optional[TemporalExpression]
-    location_ref: Optional[SpatialReference]
+    time_ref: Optional[TemporalExpression] = None
+    location_ref: Optional[SpatialReference] = None
     confidence: float = 1.0
     low_confidence: bool = False  # Step 2: Added for self-consistency ambiguity
     negated: bool = False  # Step 3: Added for explicit negation scoping
