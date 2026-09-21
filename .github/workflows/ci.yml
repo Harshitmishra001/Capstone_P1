@@ -30,4 +30,4 @@ jobs:
 
     - name: Run Unit Tests
       run: |
-        pytest ml_core/tests/ -v
+        PYTHONPATH=. python -m pytest ml_core/tests/ -v
