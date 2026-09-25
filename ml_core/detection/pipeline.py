@@ -45,15 +45,42 @@ def run_detection_pipeline(
     results.extend(check_existence_contradictions(occurrences, events))
     
     # 2. Semantic Contradictions (NLI-based)
-    # If aligned clusters are provided, only compare within clusters (massive speedup)
     event_pairs = []
+    seen_pairs = set()
+
     if claim_clusters is not None:
+        # Check pairs within the same semantic cluster
         for cluster in claim_clusters:
             if len(cluster) < 2:
                 continue
             for i in range(len(cluster)):
                 for j in range(i + 1, len(cluster)):
-                    event_pairs.append((cluster[i].event, cluster[j].event, cluster[i].id, cluster[j].id))
+                    key = (min(cluster[i].id, cluster[j].id), max(cluster[i].id, cluster[j].id))
+                    if key not in seen_pairs:
+                        seen_pairs.add(key)
+                        event_pairs.append((cluster[i].event, cluster[j].event, cluster[i].id, cluster[j].id))
+        
+        # Also check cross-witness events sharing identical themes (clothing, escape, weapons, theft)
+        for i in range(len(events)):
+            for j in range(i + 1, len(events)):
+                ev1 = events[i]
+                ev2 = events[j]
+                if ev1.source_statement_id != ev2.source_statement_id:
+                    act1 = ev1.action.lower()
+                    act2 = ev2.action.lower()
+                    sub1 = (ev1.subject or "").lower()
+                    sub2 = (ev2.subject or "").lower()
+                    
+                    themes = ["wear", "cloth", "escap", "fled", "flee", "arm", "gun", "crowbar", "steal", "stole", "loot", "alarm", "enter"]
+                    matches_theme = any(k in act1 and k in act2 for k in themes) or \
+                                    (any(k in act1 for k in themes) and any(k in act2 for k in themes)) or \
+                                    (("suspect" in sub1 or "robber" in sub1 or "thie" in sub1) and ("suspect" in sub2 or "robber" in sub2 or "thie" in sub2) and (act1.split()[0] in act2 or act2.split()[0] in act1))
+                    
+                    if matches_theme:
+                        key = (f"theme_{min(i, j)}", f"theme_{max(i, j)}")
+                        if key not in seen_pairs:
+                            seen_pairs.add(key)
+                            event_pairs.append((ev1, ev2, f"claim_{i}", f"claim_{j}"))
     else:
         for i in range(len(events)):
             for j in range(i + 1, len(events)):
