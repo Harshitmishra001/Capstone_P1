@@ -1,0 +1,155 @@
+{
+  "status": "success",
+  "metrics": {
+    "total_statements": 2,
+    "total_entities": 3,
+    "total_events": 5,
+    "total_claims": 5,
+    "total_contradictions": 1
+  },
+  "entities": [
+    {
+      "source_statement_id": "stmt_0",
+      "source_span": [
+        59,
+        66
+      ],
+      "text": "Tanishq",
+      "label": "PERSON",
+      "attributes": {},
+      "entity_cluster_id": "5e48c539-fd77-467d-907b-3cc005cf5a5b"
+    },
+    {
+      "source_statement_id": "stmt_0",
+      "source_span": [
+        84,
+        91
+      ],
+      "text": "MG Road",
+      "label": "LOCATION",
+      "attributes": {},
+      "entity_cluster_id": "145d9d3d-e212-4462-ae73-bbf631f6db85"
+    },
+    {
+      "source_statement_id": "stmt_1",
+      "source_span": [
+        68,
+        75
+      ],
+      "text": "MG Road",
+      "label": "LOCATION",
+      "attributes": {},
+      "entity_cluster_id": "54ea5216-fe80-422f-add9-105b392f6158"
+    }
+  ],
+  "events": [
+    {
+      "source_statement_id": "stmt_0",
+      "source_span": [
+        27,
+        54
+      ],
+      "text": "two masked men armed with handguns entered the Tanishq jewelry store on MG Road",
+      "subject": "two masked men",
+      "action": "armed with handguns entered",
+      "object": "the Tanishq jewelry store on MG Road",
+      "time_ref": null,
+      "location_ref": null,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "negated": false
+    },
+    {
+      "source_statement_id": "stmt_0",
+      "source_span": [
+        98,
+        177
+      ],
+      "text": "They shattered the glass display cases and stole diamond necklaces worth fifty lakhs",
+      "subject": "They",
+      "action": "shattered the glass display cases and stole diamond necklaces worth fifty lakhs",
+      "object": "",
+      "time_ref": null,
+      "location_ref": null,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "negated": false
+    },
+    {
+      "source_statement_id": "stmt_1",
+      "source_span": [
+        32,
+        39
+      ],
+      "text": "three men running out of the jewelry store",
+      "subject": "three men",
+      "action": "running",
+      "object": "out of the jewelry store",
+      "time_ref": null,
+      "location_ref": null,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "negated": false
+    },
+    {
+      "source_statement_id": "stmt_1",
+      "source_span": [
+        76,
+        84
+      ],
+      "text": "the suspects carrying black duffel bags",
+      "subject": "the suspects",
+      "action": "carrying",
+      "object": "black duffel bags",
+      "time_ref": null,
+      "location_ref": null,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "negated": false
+    },
+    {
+      "source_statement_id": "stmt_1",
+      "source_span": [
+        206,
+        213
+      ],
+      "text": "the tall suspect wearing a bright red hoodie with beige cargo pants",
+      "subject": "the tall suspect",
+      "action": "wearing",
+      "object": "a bright red hoodie with beige cargo pants",
+      "time_ref": null,
+      "location_ref": null,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "negated": false
+    }
+  ],
+  "contradictions": [
+    {
+      "claim_ids": [
+        "dc31558b-4f47-4710-bdab-cf7d43a320c8",
+        "688c624f-cc2a-4eb6-ac7b-3ffd3a32de4a"
+      ],
+      "type": "semantic",
+      "verdict": "contradiction",
+      "confidence": 0.95,
+      "rationale": "Statement 1 mentions two masked men with handguns entering the Tanishq jewelry store while Statement 2 states three men running out of it.",
+      "source_span": [
+        [
+          "stmt_0",
+          [
+            27,
+            54
+          ]
+        ],
+        [
+          "stmt_1",
+          [
+            32,
+            39
+          ]
+        ]
+      ]
+    }
+  ]
+}

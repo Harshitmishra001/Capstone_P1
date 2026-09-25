@@ -12,7 +12,7 @@ class PydanticEventTuple(BaseModel):
     action: str = Field(..., description="The action being performed")
     object: Optional[str] = Field(None, description="The object receiving the action")
     is_explicit_denial: bool = Field(False, description="True if the text explicitly states an event did NOT happen")
-    source_span: Tuple[int, int] = Field(..., description="The character span of the extracted event in the text")
+    source_span: Optional[Tuple[int, int]] = Field(default=(0, 0), description="The character span of the extracted event in the text")
 
 def extract_events_llm(statement: Statement, llm_call: Callable[[str, Optional[str]], str], sample_count: int = 3) -> Tuple[List[EventTuple], List[EventOccurrence]]:
     """
@@ -117,7 +117,22 @@ JSON Output:"""
     for attempt in range(2):
         try:
             response_text = llm_call(prompt, error_msg)
-            data = json.loads(response_text)
+            raw = response_text.strip()
+            if "```json" in raw:
+                raw = raw.split("```json")[1].split("```")[0].strip()
+            elif "```" in raw:
+                raw = raw.split("```")[1].split("```")[0].strip()
+                
+            start = raw.find('[')
+            end = raw.rfind(']')
+            if start != -1 and end != -1 and end > start:
+                raw = raw[start:end+1]
+                
+            import re
+            raw = re.sub(r',\s*\]', ']', raw)
+            raw = re.sub(r',\s*\}', '}', raw)
+            
+            data = json.loads(raw)
             if not isinstance(data, list):
                 raise ValueError("Output must be a JSON list")
                 
