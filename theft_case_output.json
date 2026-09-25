@@ -1,10 +1,10 @@
 {
   "status": "success",
   "metrics": {
-    "total_statements": 2,
-    "total_entities": 3,
-    "total_events": 5,
-    "total_claims": 5,
+    "total_statements": 5,
+    "total_entities": 2,
+    "total_events": 11,
+    "total_claims": 11,
     "total_contradictions": 1
   },
   "entities": [
@@ -17,7 +17,7 @@
       "text": "Tanishq",
       "label": "PERSON",
       "attributes": {},
-      "entity_cluster_id": "5e48c539-fd77-467d-907b-3cc005cf5a5b"
+      "entity_cluster_id": "1a51631c-9fd6-4c9f-84d1-548ce069e800"
     },
     {
       "source_statement_id": "stmt_0",
@@ -28,31 +28,36 @@
       "text": "MG Road",
       "label": "LOCATION",
       "attributes": {},
-      "entity_cluster_id": "145d9d3d-e212-4462-ae73-bbf631f6db85"
-    },
-    {
-      "source_statement_id": "stmt_1",
-      "source_span": [
-        68,
-        75
-      ],
-      "text": "MG Road",
-      "label": "LOCATION",
-      "attributes": {},
-      "entity_cluster_id": "54ea5216-fe80-422f-add9-105b392f6158"
+      "entity_cluster_id": "efd33b23-f628-4b2d-a234-9b3136c6f68e"
     }
   ],
   "events": [
     {
       "source_statement_id": "stmt_0",
       "source_span": [
-        27,
+        47,
         54
       ],
-      "text": "two masked men armed with handguns entered the Tanishq jewelry store on MG Road",
+      "text": "two masked men entered the Tanishq jewelry store",
       "subject": "two masked men",
-      "action": "armed with handguns entered",
-      "object": "the Tanishq jewelry store on MG Road",
+      "action": "entered",
+      "object": "the Tanishq jewelry store",
+      "time_ref": null,
+      "location_ref": null,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "negated": false
+    },
+    {
+      "source_statement_id": "stmt_0",
+      "source_span": [
+        27,
+        46
+      ],
+      "text": "masked men armed with handguns",
+      "subject": "masked men",
+      "action": "armed with handguns",
+      "object": "",
       "time_ref": null,
       "location_ref": null,
       "confidence": 1.0,
@@ -63,11 +68,27 @@
       "source_statement_id": "stmt_0",
       "source_span": [
         98,
-        177
+        132
       ],
-      "text": "They shattered the glass display cases and stole diamond necklaces worth fifty lakhs",
-      "subject": "They",
-      "action": "shattered the glass display cases and stole diamond necklaces worth fifty lakhs",
+      "text": "two masked men smashed the glass display counters",
+      "subject": "two masked men",
+      "action": "smashed the glass display counters",
+      "object": "",
+      "time_ref": null,
+      "location_ref": null,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "negated": false
+    },
+    {
+      "source_statement_id": "stmt_0",
+      "source_span": [
+        7,
+        14
+      ],
+      "text": "masked men stole diamond necklaces",
+      "subject": "masked men",
+      "action": "stole diamond necklaces",
       "object": "",
       "time_ref": null,
       "location_ref": null,
@@ -81,10 +102,10 @@
         32,
         39
       ],
-      "text": "three men running out of the jewelry store",
+      "text": "three men running",
       "subject": "three men",
       "action": "running",
-      "object": "out of the jewelry store",
+      "object": "",
       "time_ref": null,
       "location_ref": null,
       "confidence": 1.0,
@@ -94,11 +115,11 @@
     {
       "source_statement_id": "stmt_1",
       "source_span": [
-        76,
-        84
+        65,
+        73
       ],
-      "text": "the suspects carrying black duffel bags",
-      "subject": "the suspects",
+      "text": "the robbers carrying black duffel bags",
+      "subject": "the robbers",
       "action": "carrying",
       "object": "black duffel bags",
       "time_ref": null,
@@ -110,13 +131,77 @@
     {
       "source_statement_id": "stmt_1",
       "source_span": [
-        206,
-        213
+        142,
+        147
       ],
-      "text": "the tall suspect wearing a bright red hoodie with beige cargo pants",
-      "subject": "the tall suspect",
+      "text": "armed heavy iron crowbars",
+      "subject": "",
+      "action": "armed",
+      "object": "heavy iron crowbars",
+      "time_ref": null,
+      "location_ref": null,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "negated": false
+    },
+    {
+      "source_statement_id": "stmt_2",
+      "source_span": [
+        23,
+        30
+      ],
+      "text": "The primary robber wearing a dark leather jacket",
+      "subject": "The primary robber",
       "action": "wearing",
+      "object": "a dark leather jacket",
+      "time_ref": null,
+      "location_ref": null,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "negated": false
+    },
+    {
+      "source_statement_id": "stmt_2",
+      "source_span": [
+        1,
+        13
+      ],
+      "text": "fled on a black motorcycle towards the station",
+      "subject": "",
+      "action": "fled",
+      "object": "on a black motorcycle towards the station",
+      "time_ref": null,
+      "location_ref": null,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "negated": false
+    },
+    {
+      "source_statement_id": "stmt_3",
+      "source_span": [
+        21,
+        25
+      ],
+      "text": "The main suspect wear a bright red hoodie with beige cargo pants",
+      "subject": "The main suspect",
+      "action": "wear",
       "object": "a bright red hoodie with beige cargo pants",
+      "time_ref": null,
+      "location_ref": null,
+      "confidence": 1.0,
+      "low_confidence": false,
+      "negated": false
+    },
+    {
+      "source_statement_id": "stmt_4",
+      "source_span": [
+        10,
+        24
+      ],
+      "text": "the store alarm went off",
+      "subject": "the store",
+      "action": "alarm went off",
+      "object": "",
       "time_ref": null,
       "location_ref": null,
       "confidence": 1.0,
@@ -127,26 +212,26 @@
   "contradictions": [
     {
       "claim_ids": [
-        "dc31558b-4f47-4710-bdab-cf7d43a320c8",
-        "688c624f-cc2a-4eb6-ac7b-3ffd3a32de4a"
+        "fbcbd902-cf23-4230-8301-8739e5f31f04",
+        "08bda7b7-0ba7-4c19-bba1-a5aa60f3d2e3"
       ],
       "type": "semantic",
       "verdict": "contradiction",
       "confidence": 0.95,
-      "rationale": "Statement 1 mentions two masked men with handguns entering the Tanishq jewelry store while Statement 2 states three men running out of it.",
+      "rationale": "The primary robber in Statement 1 is described as wearing a dark leather jacket, while in Statement 2, the main suspect is said to be wearing a bright red hoodie with beige cargo pants.",
       "source_span": [
         [
-          "stmt_0",
+          "stmt_2",
           [
-            27,
-            54
+            23,
+            30
           ]
         ],
         [
-          "stmt_1",
+          "stmt_3",
           [
-            32,
-            39
+            21,
+            25
           ]
         ]
       ]

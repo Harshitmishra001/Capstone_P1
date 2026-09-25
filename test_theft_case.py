@@ -6,59 +6,70 @@ from ml_core.orchestrator import analyze_incident
 OUTPUT_FILE = Path("theft_case_output.json")
 
 def test_theft_case():
-    print("=" * 70)
-    print(" SILENT WITNESS — DETAILED THEFT CASE DEMO")
-    print("=" * 70)
+    print("=" * 75)
+    print(" SILENT WITNESS — MULTI-WITNESS THEFT CASE DEMO (5 WITNESSES)")
+    print("=" * 75)
 
-    # 7-8 detailed sentences across two witnesses describing a jewelry store heist
-    statement_1 = (
+    # 5 distinct eyewitness testimonies (8 sentences total) for the jewelry store heist
+    witness_statements = [
+        # Witness 1: Store Security Guard (Inside)
         "At 8:15 PM, two masked men armed with handguns entered the Tanishq jewelry store on MG Road. "
-        "They shattered the glass display cases and stole diamond necklaces worth fifty lakhs. "
-        "The primary suspect was wearing a heavy black leather jacket and dark blue jeans. "
-        "They fled the scene on a black Yamaha motorcycle heading east towards the railway station."
-    )
+        "They smashed the glass display counters and stole diamond necklaces.",
 
-    statement_2 = (
-        "Around 8:30 PM, I saw three men running out of the jewelry store on MG Road carrying black duffel bags. "
-        "The suspects were not carrying handguns; they were holding large steel crowbars. "
-        "The tall suspect was wearing a bright red hoodie with beige cargo pants. "
-        "They did not escape on a motorcycle; they jumped into a silver getaway sedan and sped towards the highway."
-    )
+        # Witness 2: Tea Stall Vendor (Across the street)
+        "Around 8:20 PM, I saw three men running out of the jewelry store carrying black duffel bags. "
+        "The robbers were not holding handguns; they were armed with heavy iron crowbars.",
 
-    statements = [statement_1, statement_2]
+        # Witness 3: Auto Rickshaw Driver (At the junction)
+        "The primary robber was wearing a dark leather jacket and fled on a black motorcycle towards the station.",
 
-    print("\n--- INPUT WITNESS TESTIMONIES (8 DETAILED SENTENCES) ---")
-    print(f"\n[Witness 1 - Store Security / Employee]:\n\"{statement_1}\"")
-    print(f"\n[Witness 2 - Street Bystander]:\n\"{statement_2}\"")
+        # Witness 4: Pedestrian Shopper (On the sidewalk)
+        "The main suspect was wearing a bright red hoodie with beige cargo pants. "
+        "They did not escape on a motorcycle; they jumped into a silver getaway sedan and sped towards the highway.",
 
-    print("\n" + "-" * 70)
-    print("Running NLP & Contradiction Detection pipeline via local SmolLM-3B...")
+        # Witness 5: Store Cashier (Emergency responder view)
+        "The store alarm went off at 8:30 PM after the thieves fled with fifty lakhs in jewelry."
+    ]
+
+    print("\n--- INPUT WITNESS TESTIMONIES (5 VANTAGE POINTS) ---")
+    roles = [
+        "Witness 1 (Store Security)",
+        "Witness 2 (Tea Vendor Across Street)",
+        "Witness 3 (Auto Rickshaw Driver)",
+        "Witness 4 (Pedestrian Shopper)",
+        "Witness 5 (Store Cashier)"
+    ]
+    for role, text in zip(roles, witness_statements):
+        print(f"\n[{role}]:\n\"{text}\"")
+
+    print("\n" + "-" * 75)
+    print("Executing full NLP pipeline via local SmolLM-3B (http://172.19.121.89:1234)...")
     start_time = time.time()
 
-    # Run full orchestrator
-    result = analyze_incident(statements)
+    # Run central orchestrator
+    result = analyze_incident(witness_statements)
     elapsed = time.time() - start_time
 
-    # Save to JSON file
+    # Save output to JSON file
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2)
 
     print(f"Pipeline completed in {elapsed:.2f} seconds!")
-    print(f"Full JSON results saved to: {OUTPUT_FILE.resolve()}")
-    print("-" * 70)
+    print(f"Structured JSON output saved to: {OUTPUT_FILE.resolve()}")
+    print("-" * 75)
 
     # Display Metrics & Summary
-    print("\n--- EXTRACTION & DETECTION SUMMARY ---")
-    print(f"Total Statements Analyzed : {result['metrics']['total_statements']}")
-    print(f"Entities Recognized (NER) : {result['metrics']['total_entities']}")
-    print(f"Events Extracted (S-V-O)  : {result['metrics']['total_events']}")
-    print(f"Claims Generated          : {result['metrics']['total_claims']}")
-    print(f"Contradictions Flagged    : {result['metrics']['total_contradictions']}")
+    print("\n--- EXTRACTION & CONTRADICTION SUMMARY ---")
+    print(f"Total Witnesses/Statements : {result['metrics']['total_statements']}")
+    print(f"Entities Recognized (NER)  : {result['metrics']['total_entities']}")
+    print(f"Events Extracted (S-V-O)   : {result['metrics']['total_events']}")
+    print(f"Claims Generated           : {result['metrics']['total_claims']}")
+    print(f"Contradictions Flagged     : {result['metrics']['total_contradictions']}")
 
-    # Display clean preview on terminal
-    print("\n" + "=" * 70)
+    # Display clean JSON preview on terminal
+    print("\n" + "=" * 75)
     print(" TERMINAL DISPLAY: STRUCTURED JSON OUTPUT")
-    print("=" * 70)
+    print("=" * 75)
     print(json.dumps(result, indent=2))
 
 if __name__ == "__main__":
