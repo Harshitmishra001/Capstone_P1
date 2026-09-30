@@ -4,13 +4,14 @@
 \usepackage[utf8]{inputenc}
 \usepackage{geometry}
 \geometry{a4paper, margin=1in}
-\usepackage{graphicx}
 \usepackage{hyperref}
 \usepackage{listings}
 \usepackage{xcolor}
 \usepackage{titlesec}
 \usepackage{caption}
 \usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, fit, backgrounds}
 
 % Colors for code listings
 \definecolor{codegreen}{rgb}{0,0.6,0}
@@ -88,9 +89,34 @@ The architecture of Silent Witness is decoupled into three primary tiers:
 
 \begin{figure}[h]
     \centering
-    % Placeholder for the Mermaid System Architecture diagram
-    \includegraphics[width=0.8\textwidth]{images/architecture.png}
-    \caption{High-Level System Architecture}
+    \begin{tikzpicture}[
+      node distance=1.5cm and 2cm,
+      box/.style={rectangle, draw=black, thick, fill=blue!10, text width=3.5cm, align=center, minimum height=1.2cm, rounded corners},
+      mlbox/.style={rectangle, draw=black, thick, fill=green!10, text width=4.5cm, align=center, minimum height=1cm},
+      arrow/.style={-{Stealth[length=3mm, width=2mm]}, thick}
+    ]
+    % Nodes
+    \node (frontend) [box, fill=orange!10] {Frontend\\(React / Vite)};
+    \node (backend) [box, below=of frontend, yshift=-0.5cm] {Backend API\\(FastAPI)};
+    
+    \node (stage1) [mlbox, right=of frontend, xshift=2.5cm, yshift=-0.5cm] {Stage 1: NER \& Negation\\(spaCy)};
+    \node (stage2) [mlbox, below=of stage1, yshift=0.5cm] {Stage 2: Event Extraction\\(SmolLM-3B)};
+    \node (stage3) [mlbox, below=of stage2, yshift=0.5cm] {Stage 3: Clustering\\(MiniLM)};
+    \node (stage4) [mlbox, below=of stage3, yshift=0.5cm] {Stage 4: Contradiction\\Engine};
+
+    % Bounding box for ML Core
+    \begin{scope}[on background layer]
+      \node (mlcore) [draw=black!50, dashed, thick, fill=gray!5, fit=(stage1) (stage2) (stage3) (stage4), inner sep=0.5cm, label=above:\textbf{ML Core (Python)}] {};
+    \end{scope}
+
+    % Arrows
+    \draw [arrow, <->] (frontend) -- node[right] {\footnotesize JSON Data} (backend);
+    \draw [arrow, <->] (backend.east) -- node[above] {\footnotesize Local Comm} (mlcore.west |- backend.east);
+    \draw [arrow] (stage1) -- (stage2);
+    \draw [arrow] (stage2) -- (stage3);
+    \draw [arrow] (stage3) -- (stage4);
+    \end{tikzpicture}
+    \caption{High-Level System Architecture and ML Pipeline Flow}
     \label{fig:arch}
 \end{figure}
 
