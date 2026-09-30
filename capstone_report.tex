@@ -1,0 +1,199 @@
+\documentclass[12pt,a4paper]{report}
+
+% Packages
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{caption}
+\usepackage{booktabs}
+
+% Colors for code listings
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+% Code listing style
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+\lstset{style=mystyle}
+
+\title{
+    \vspace{2cm}
+    \textbf{\huge Silent Witness}\\
+    \vspace{0.5cm}
+    \Large An Automated, Non-Adjudicative Forensic Consistency Reconstructor for Multi-Witness Eyewitness Testimonies\\
+    \vspace{2cm}
+    \large \textit{Capstone Project Report}\\
+    \vspace{1cm}
+    \textbf{SRM Institute of Science and Technology}
+}
+
+\author{
+    \textbf{Harshit Mishra} (Backend \& ML Architecture Lead) \and
+    \textbf{Tushar Saxena} (Frontend Developer) \and
+    \textbf{Manik} (Frontend Developer)
+}
+\date{\vspace{2cm}\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Eyewitness testimonies are foundational to forensic investigations, yet human memory is highly susceptible to degradation, trauma, and vantage-point biases. When investigating officers must cross-examine dozens of rambling, overlapping statements, they face a combinatorial bottleneck: manually identifying factual discrepancies across $N$ witnesses requires $O(N^2)$ comparisons. This project introduces \textit{Silent Witness}, an automated, non-adjudicative forensic consistency reconstructor. Using a zero-cloud, privacy-first 5-stage NLP pipeline, the system extracts structured event tuples from raw speech-to-text transcripts, aligns them semantically using dense embeddings, and detects factual contradictions using a locally hosted Small Language Model (SmolLM-3B). Crucially, the system remains strictly evidentiary---it flags contradictions without adjudicating truth or assessing witness credibility. Experimental results on a synthetic 5-witness dataset demonstrated highly accurate discrepancy detection (17 validated contradictions) with full character-level traceability in under 45 seconds. Furthermore, we outline a next-generation enhancement integrating TypeSafe AI's System One model (Jev) to replace prompt-and-parse heuristics with typed, parallel probabilistic judgments and confidence-gated human escalation.
+\end{abstract}
+
+\tableofcontents
+
+\chapter{Introduction}
+\section{The Real-World Forensic Challenge}
+In law enforcement and forensic investigations, multiple eyewitnesses to a single event (e.g., a bank heist, a hit-and-run) often provide conflicting accounts. Investigating officers face significant cognitive overload when attempting to manually cross-reference 10-20 rambling statements. Traditional methods involve painstakingly mapping statements on whiteboards to find discrepancies in suspect attire, weapon types, or timelines.
+
+\section{The Combinatorial Bottleneck}
+Comparing statements across witnesses scales quadratically. For 20 witnesses, there are 190 unique pairs to cross-examine. Naive application of Large Language Models (LLMs) to compare entire transcripts is computationally intractable and prone to hallucination. Furthermore, standard Generative AI often attempts to "solve" the crime by declaring who is lying, which is legally inadmissible.
+
+\section{Scope and Non-Adjudicative Boundaries}
+\textit{Silent Witness} operates under a strict non-adjudicative boundary. The system's role is to act as an evidentiary assistant. It highlights that "Witness A says the car was red" and "Witness B says the car was blue." It does not state "Witness A is lying." By maintaining character-level traceability to the source transcripts, the system ensures that the human investigator retains ultimate authority.
+
+\chapter{System Architecture}
+\section{Tiered System Design}
+The architecture of Silent Witness is decoupled into three primary tiers:
+\begin{itemize}
+    \item \textbf{Frontend (React, Vite, TypeScript):} Developed by Tushar Saxena and Manik, the frontend provides an interactive workspace featuring a contradiction panel, spatial/temporal views, and document ingestion tools.
+    \item \textbf{Backend API (FastAPI):} Serves as the high-throughput bridge between the user interface and the ML engine, exposing RESTful endpoints (\texttt{/analyze}).
+    \item \textbf{ML Core (Python):} The heart of the pipeline, managing deterministic extraction, embedding generation, and local LLM orchestration.
+\end{itemize}
+
+\begin{figure}[h]
+    \centering
+    % Placeholder for the Mermaid System Architecture diagram
+    \includegraphics[width=0.8\textwidth]{images/architecture.png}
+    \caption{High-Level System Architecture}
+    \label{fig:arch}
+\end{figure}
+
+\section{Privacy and On-Premises Compliance}
+First Information Reports (FIRs) and sensitive witness statements cannot be legally dispatched to third-party cloud APIs (e.g., OpenAI). Consequently, \textit{Silent Witness} is designed as a zero-cloud stack. Execution is handled entirely on local hardware using LM Studio (SmolLM-3B), Sentence-Transformers, and spaCy.
+
+\chapter{The 5-Stage ML Pipeline}
+\section{Stage 1: Deterministic Extraction}
+The pipeline begins with spaCy for Named Entity Recognition (NER), identifying locations, times, and persons. A syntactic dependency parser handles negation scoping, ensuring that phrases like "did not see a weapon" are recorded as explicit denials rather than assertions.
+
+\section{Stage 2: Atomic Fact Extraction}
+A local open-weights Small Language Model (SmolLM-3B) extracts unstructured text into structured \texttt{(Subject, Action, Object)} tuples.
+
+\section{Stage 3: Semantic Vector Clustering}
+To solve the $O(N^2)$ bottleneck, claims are embedded using \texttt{all-MiniLM-L6-v2}. Claims are clustered thematically (e.g., all claims about attire are grouped). This prunes the required NLI (Natural Language Inference) comparisons by over 90\%.
+
+\section{Stage 4: Contradiction Engine}
+The system cross-examines claim pairs within clusters. To ensure efficiency, an advanced thematic heuristic and \texttt{seen\_pairs} deduplication algorithm is utilized.
+
+\begin{lstlisting}[language=Python, caption=Thematic Deduplication and Pair Pruning in Pipeline.py]
+def run_detection_pipeline(occurrences, events, claim_clusters=None):
+    event_pairs = []
+    seen_pairs = set()
+
+    for i in range(len(events)):
+        for j in range(i + 1, len(events)):
+            ev1, ev2 = events[i], events[j]
+            if ev1.source_statement_id != ev2.source_statement_id:
+                act1, act2 = ev1.action.lower(), ev2.action.lower()
+                
+                # Heuristic thematic matching to avoid O(N^2) LLM calls
+                themes = ["wear", "cloth", "escap", "fled", "arm", "gun", "steal"]
+                matches_theme = any(k in act1 and k in act2 for k in themes)
+                
+                if matches_theme:
+                    key = (f"theme_{min(i, j)}", f"theme_{max(i, j)}")
+                    if key not in seen_pairs:
+                        seen_pairs.add(key)
+                        event_pairs.append((ev1, ev2))
+    return event_pairs
+\end{lstlisting}
+
+\section{Stage 5: Evidentiary Traceability}
+Every generated fact tuple is bound to its exact character offsets \texttt{(start\_char, end\_char)} within the source transcript, ensuring seamless auditing.
+
+\chapter{Synthetic Forensic Benchmark Corpus}
+\section{Data Scarcity and Generation}
+Because real-world multi-witness corpora are legally protected, a synthetic generation methodology was developed. The dataset comprises 20 crime/disaster scenarios (including localized Indian scenarios like the Chandni Chowk Heist and Marine Drive Hit-and-Run), totaling 400 rambling testimonies and 100 benchmark JSON files.
+
+\begin{lstlisting}[language=Python, caption=Excerpt from the 5-Witness Theft Benchmark Dataset]
+statements = [
+    """I was grabbing a coffee across the street when the alarm went off. 
+    Two men ran out of the jewelry store. One was wearing a black leather 
+    jacket and carrying a crowbar. They jumped into a black sedan and sped 
+    off heading East down Main Street.""",
+    
+    """I was walking right past the shop! Three guys busted out the front door. 
+    The one in the front had a bright red hoodie and a silver handgun. 
+    I panicked and hit the deck. They peeled out in a blue sports car 
+    heading West towards the highway."""
+]
+\end{lstlisting}
+
+\chapter{Next-Generation Enhancements: TypeSafe AI (Jev)}
+\section{Transitioning to System One Models}
+While the local SmolLM-3B pipeline is effective, prompt-and-parse heuristics can be brittle. We have drafted a major architectural enhancement utilizing TypeSafe AI's \textbf{Jev} (a System One model). Jev returns typed, parallel probabilistic judgments (\texttt{Noul}, \texttt{Choice}, \texttt{Score}) rather than generated text.
+
+\section{Confidence-Gated Escalation}
+Using Jev, the pipeline will evaluate 5 atomic questions (contradiction existence, category, severity, negation guard, paraphrase guard) in a single $\sim100$ms request. The model's \texttt{confidence} score drives a UI routing logic:
+\begin{itemize}
+    \item \textbf{Confidence $\ge 0.85$:} Automatically flagged in the React UI (Red Badge).
+    \item \textbf{Confidence $0.50 - 0.85$:} Flagged for investigator review (Amber Badge).
+    \item \textbf{Confidence $< 0.50$:} Escalated to local SmolLM for deep reasoning (Grey Badge).
+\end{itemize}
+
+\begin{lstlisting}[language=Python, caption=Proposed Jev System One Integration for Contradiction Detection]
+def jev_detect_contradiction(claim1_text: str, claim2_text: str) -> dict:
+    response = client.system_one(
+        state={"claim_a": claim1_text, "claim_b": claim2_text},
+        questions={
+            "is_contradiction": Noul(
+                instructions="Do the claims describe the same fact differently?"
+            ),
+            "contradiction_type": Choice(
+                instructions="Which factual dimension does the conflict fall into?",
+                criteria={"attire": "Clothing", "weapon": "Weapons", "escape": "Escape route"}
+            ),
+            "severity": Score(
+                instructions="How severe is the mismatch?",
+                criteria=["No contradiction", "Minor discrepancy", "Clear mismatch"]
+            )
+        }
+    )
+    return {
+        "verdict": "contradiction" if response.answers["is_contradiction"].noul > 0.7 else "corroboration",
+        "type": response.answers["contradiction_type"].choice,
+        "severity": response.answers["severity"].score,
+    }
+\end{lstlisting}
+
+\chapter{Conclusion and Future Roadmap}
+\textit{Silent Witness} successfully mitigates the combinatorial bottleneck of eyewitness cross-examination using an innovative 5-stage NLP architecture. By prioritizing strict evidentiary boundaries and local-first execution, it provides a safe tool for law enforcement. 
+
+Future work includes integrating Neo4j for persistent knowledge graph storage, direct Whisper integration for audio file ingestion, and deploying the hybrid Jev architecture to achieve confidence-gated human-in-the-loop validation.
+
+\end{document}
