@@ -422,7 +422,7 @@ pytest ml_core/tests/ -v
 
 ## 13. Contributors & Capstone Credits
 
-Developed as a Capstone Engineering Project at **SRM Institute of Science and Technology**:
+Developed as a Capstone Engineering Project at **VIT BHOPAL UNIVERSITY**:
 
 * **Harshit Mishra** — Backend & ML Architecture Lead (Core Pipeline, NER, LLM Extraction, Contradiction Engine, CI/CD)
 * **Project Collaborators** — Frontend Engineering, UI/UX Design, and Dataset Annotation
