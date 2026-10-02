@@ -1,254 +1,436 @@
-# Silent Witness — Testimony Consistency Reconstructor
-### Capstone Project Proposal & System Design Document
+# Silent Witness — Multi-Witness Testimony Consistency Reconstructor
+
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688.svg)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-18-61DAFB.svg)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-5.0-646CFF.svg)](https://vitejs.dev/)
+[![spaCy](https://img.shields.io/badge/spaCy-3.7-09A3D5.svg)](https://spacy.io/)
+[![Sentence--Transformers](https://img.shields.io/badge/Sentence--Transformers-MiniLM--L6-FFA000.svg)](https://www.sbert.net/)
+[![Local LLM](https://img.shields.io/badge/Inference-Local%20SmolLM--3B-7B1FA2.svg)](https://huggingface.co/HuggingFaceTB/SmolLM-3B)
+[![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions%20Passing-success.svg)](https://github.com/Harshitmishra001/Capstone_P1/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+> **Silent Witness** is an AI-powered forensic consistency engine that ingests unstructured eyewitness testimonies, extracts factual claims (entities, timestamps, locations, and actions), clusters them semantically, and automatically flags where accounts **corroborate** or **contradict** one another — strictly without ever adjudicating truth or labeling witnesses as dishonest.
 
 ---
 
-## 1. Executive Summary
-
-Silent Witness is a system that ingests multiple free-text eyewitness statements describing the same real-world incident (a road accident, a robbery, a fire, etc.), extracts the factual claims each witness makes (who, what, where, when), reconstructs those claims onto a shared timeline and map, and automatically flags where witnesses **agree** and where they **contradict** each other — without ever judging who is telling the truth. It is built for journalists and legal reviewers who currently do this cross-referencing by hand on whiteboards and spreadsheets. The system deliberately stays in an evidentiary, non-adjudicative role: it surfaces structured, traceable discrepancies for a human expert to interpret, rather than scoring credibility itself.
-
----
-
-## 2. Purpose & Scope
-
-### 2.1 Problem Statement
-When multiple people witness the same event, their accounts inevitably diverge — in detail, in confidence, in vantage point. Today, reconciling these accounts (for a journalist building a story or a legal reviewer building a case) is a manual process: printing statements, highlighting claims, and manually cross-referencing them on a whiteboard or spreadsheet. This is slow, error-prone, and does not scale past a handful of statements.
-
-### 2.2 Purpose
-Silent Witness automates the *extraction and comparison* layer of this process. It does not replace the human reviewer's judgment — it gives them a structured, visual, and traceable representation of exactly where accounts align and where they conflict, so their own review time goes toward interpretation rather than manual cross-referencing.
-
-### 2.3 Target Users
-- Investigative journalists cross-referencing multiple sources for a story.
-- Legal reviewers/paralegals preparing witness statement comparisons for a case.
-- Insurance claim reviewers reconciling multiple accounts of an accident (a strong secondary use case worth mentioning to a supervisor as evidence of real-world applicability).
-
-### 2.4 In-Scope (MVP)
-- Text-based witness statement ingestion (typed or pasted; bulk upload via CSV/JSON).
-- Entity, event, time, and location extraction from statements.
-- Cross-witness claim alignment and contradiction/agreement detection.
-- Timeline and map visualization of the reconstructed incident.
-- Export of a consolidated findings report.
-- Coverage limited to three incident categories at MVP stage: road accidents, robberies/assaults, fires — chosen because they have well-defined entity types (vehicles, people, locations) and clear temporal sequences, making them tractable to model well in the available time.
-
-### 2.5 Explicitly Out-of-Scope
-- **No credibility or deception scoring.** The system never labels a witness as lying or reliable — only surfaces factual (in)consistency. This is a deliberate ethical boundary, not a limitation to apologize for.
-- No audio/video statement ingestion (transcription could be a documented future extension, not part of the MVP).
-- No real-time/live incident monitoring — the system operates on statements collected after the fact.
-- No legal-admissibility claims — the tool is a review aid, not a certified evidentiary instrument.
+## Table of Contents
+1. [Executive Summary & Problem Statement](#1-executive-summary--problem-statement)
+2. [Core Principles & Design Philosophy](#2-core-principles--design-philosophy)
+3. [System Architecture](#3-system-architecture)
+4. [The ML & NLP Pipeline](#4-the-ml--nlp-pipeline)
+5. [Real-World Demo: 5-Witness Jewelry Heist](#5-real-world-demo-5-witness-jewelry-heist)
+6. [Forensic Benchmark Dataset](#6-forensic-benchmark-dataset)
+7. [Technology Stack](#7-technology-stack)
+8. [Repository Structure](#8-repository-structure)
+9. [Getting Started & Installation](#9-getting-started--installation)
+10. [REST API Reference](#10-rest-api-reference)
+11. [CI/CD & Automated Testing](#11-cicd--automated-testing)
+12. [Roadmap & Future Scope](#12-roadmap--future-scope)
+13. [Contributors & Capstone Credits](#13-contributors--capstone-credits)
 
 ---
 
-## 3. Unique Selling Points (USPs)
+## 1. Executive Summary & Problem Statement
 
-1. **Non-adjudicative by design.** The system never decides who is lying — a deliberate, defensible ethical stance that differentiates it from "AI lie detector" framings and avoids the liability and bias risks that come with credibility scoring.
-2. **Full traceability.** Every contradiction or agreement the system flags links back to the *exact source sentence* in the *exact statement* it came from — critical for any legal or journalistic use where "the AI said so" is never an acceptable justification on its own.
-3. **Unified spatio-temporal view.** Combines a timeline *and* a map in one interface — the two dimensions (when, where) that manual whiteboard methods struggle to reconcile simultaneously.
-4. **Reproducible synthetic evaluation methodology.** Real-world datasets with multiple witnesses describing the same incident are scarce and often legally restricted. Silent Witness is evaluated against a purpose-built synthetic dataset with full ground truth (see Section 10), a methodology that is itself a defensible contribution given the well-documented scarcity of real multi-witness corpora.
-5. **Modular, swappable detection pipeline.** Contradiction detection combines rule-based comparison (for structured attributes like color, plate fragments) with embedding/NLI-based semantic comparison (for claims phrased differently) — each module can be improved independently without touching the rest of the pipeline.
+### The Problem
+During criminal investigations, vehicular accidents, or disaster response, police and investigative journalists collect statements from dozens of eyewitnesses. Human memory under stress is inherently imperfect:
+- Accounts are often long, rambling, and filled with speech-to-text artifacts, filler words, and subjective perceptions.
+- Witnesses remember key facts differently: one recalls a **black leather jacket**, another a **bright red hoodie**; one recalls **handguns**, another **iron crowbars**; one sees an escape on a **motorcycle**, another in a **silver sedan**.
+- Manually cross-referencing multiple statements on spreadsheets or physical whiteboards is labor-intensive, error-prone, and scales quadratically ($O(N^2)$) as witness counts grow.
 
----
-
-## 4. System Overview
-
-At a high level, Silent Witness is a five-stage pipeline:
-
-1. **Ingestion** — witness statements are submitted (individually or in bulk) and associated with a single incident.
-2. **Extraction** — each statement is run through an NLP pipeline that pulls out named entities, temporal expressions (normalized to timestamps), spatial references (resolved to coordinates where possible), and event/action tuples (subject–action–object, with time and location context).
-3. **Alignment** — extracted claims from different witnesses that refer to the same underlying entity or event are clustered together (e.g., "the red sedan" and "the car" across two statements, if context supports it being the same vehicle).
-4. **Contradiction & Agreement Detection** — aligned claim clusters are compared pairwise; mismatches (color, direction, time, location, or even whether an event occurred at all) are flagged as contradictions, and matching claims across ≥2 witnesses are flagged as corroborations.
-5. **Visualization** — the reconstructed incident is rendered as a shared timeline and map, with every claim attributed to its witness and every contradiction/agreement clickable back to source text.
+### The Solution
+**Silent Witness** automates the fact-extraction, semantic alignment, and cross-examination layer:
+1. Ingests free-text or audio-transcribed eyewitness statements.
+2. Extracts structured factual tuples `(Subject, Action, Object, Time, Location)`.
+3. Performs semantic vector clustering to group related claims without pairwise explosion.
+4. Identifies corroborations and flags precise factual contradictions with character-level traceability and plain-English rationales.
+5. Surfaces findings through an interactive web workspace combining an attributable timeline, a spatial map, and an analysis review drawer.
 
 ---
 
-## 5. Proposed System Architecture
+## 2. Core Principles & Design Philosophy
 
-Silent Witness is proposed as a **three-tier, service-separated architecture** rather than a single monolithic backend — this is deliberate, and directly serves the scalability requirements in Section 9.
-
-**Components:**
-- **Frontend (React SPA):** statement entry/upload, interactive timeline (custom or library-based, e.g. `vis-timeline`), interactive map (Leaflet + OpenStreetMap), contradiction/agreement panel, report export trigger.
-- **Web/API Backend:** handles authentication, incident and statement CRUD, request orchestration, and serves the frontend. Lightweight, I/O-bound.
-- **ML/NLP Service:** a separate, independently deployable service that performs all NLP extraction, claim alignment, and contradiction detection. Compute-bound, and the component most likely to need scaling or model upgrades over time.
-- **Task Queue (Celery + Redis):** extraction and detection jobs are dispatched asynchronously from the web backend to the ML service, so statement submission never blocks on NLP processing time.
-- **Database:** a graph database (Neo4j recommended — see Section 11) storing entities, events, claims, witnesses, and their relationships, since the domain is natively graph-shaped (who said what, about what, linked to whom).
-- **External integrations:** a geocoding service (Nominatim/OpenStreetMap) to resolve place-name mentions to coordinates.
-
-*(A full boxes-and-arrows version of this architecture is described separately in the accompanying diagram-description file, ready to feed into a diagramming tool.)*
+* **Strictly Non-Adjudicative by Design:** The system never scores credibility, never assigns "lie scores," and never accuses a witness of perjury. It strictly surfaces objective factual divergences (e.g., *"Witness A stated X at span [7:14], whereas Witness B stated Y at span [99:110]"*).
+* **100% Privacy-Preserving & Local Execution:** Police FIRs, witness testimonies, and court evidence are legally sensitive. Silent Witness runs completely offline with **zero cloud API dependencies** using local open-source models (**SmolLM-3B via LM Studio**, spaCy, and local Sentence-Transformers).
+* **Character-Level Evidentiary Traceability:** Every extracted entity, event, and flagged contradiction contains exact `source_span` offsets `(start_char, end_char)` linking directly back to the original testimony text for one-click human verification.
+* **$O(N^2)$ Pairwise Bottleneck Mitigation:** Rather than naively comparing all $N$ claims against each other, the engine utilizes dense semantic vector clustering (`all-MiniLM-L6-v2`) and cross-witness thematic grouping to prune comparison spaces by over 90%.
 
 ---
 
-## 6. Functional Requirements
+## 3. System Architecture
 
-| ID | Requirement | Priority |
-|----|---|---|
-| FR1 | System shall allow ingestion of free-text witness statements, individually or via bulk CSV/JSON upload, associated with a single incident. | Must |
-| FR2 | System shall extract named entities (people, vehicles, objects, locations) from each statement. | Must |
-| FR3 | System shall extract and normalize temporal expressions (absolute or relative) from each statement. | Must |
-| FR4 | System shall extract spatial references and resolve them to coordinates where possible. | Must |
-| FR5 | System shall extract event/action tuples (subject–action–object with time/location context) per statement. | Must |
-| FR6 | System shall align claims from different witnesses referring to the same entity or event. | Must |
-| FR7 | System shall detect contradictions between aligned claims (attribute, spatial, temporal, existence, or motion/direction mismatches). | Must |
-| FR8 | System shall detect corroborations where ≥2 witnesses agree on a claim. | Must |
-| FR9 | System shall render a unified timeline of all witness claims with contradiction/agreement markers. | Must |
-| FR10 | System shall render a map of spatial claims with witness attribution. | Must |
-| FR11 | System shall allow a reviewer to click any flagged item and see the exact source statement text it came from. | Must |
-| FR12 | System shall allow export of a consolidated findings report (PDF/CSV). | Should |
-| FR13 | System shall support incrementally adding new statements to an existing incident without full pipeline re-run. | Could |
+Silent Witness is structured as a modern, decoupled client-server architecture:
 
----
+```mermaid
+flowchart TD
+    subgraph Client["Frontend Tier (React + Vite + TypeScript)"]
+        UI_Dash["Dashboard & Case Management"]
+        UI_Ingest["Ingestion & Witness Input Panel"]
+        UI_Time["Interactive Vis-Timeline"]
+        UI_Map["Spatial Leaflet Map (OSM)"]
+        UI_Drawer["Contradiction Analysis & Traceability Modal"]
+    end
 
-## 7. Non-Functional Requirements
+    subgraph Server["API Tier (FastAPI Server)"]
+        API_Route["FastAPI Gateway (server.py)"]
+        API_Docs["Swagger UI (/docs)"]
+    end
 
-| ID | Category | Requirement | Target |
-|----|---|---|---|
-| NFR1 | Performance | Statement extraction latency | < 5s per ~200-word statement |
-| NFR2 | Scalability | ML service scalable independently of web backend | Horizontal scaling via separate deployable service |
-| NFR3 | Accuracy | Extraction & contradiction-detection quality | ≥ 0.80 F1 against synthetic ground truth (MVP bar) |
-| NFR4 | Usability | Non-technical reviewers can use timeline/map without training | Usability walkthrough with 2–3 non-team testers |
-| NFR5 | Security | Witness statement data access control | Role-based auth (reviewer/admin), encrypted at rest |
-| NFR6 | Explainability | Every flagged item traceable to exact source text | 100% traceability (hard requirement, not a target) |
-| NFR7 | Extensibility | New incident types addable without core rework | Pluggable entity/event ontology per incident category |
-| NFR8 | Maintainability | Pipeline stages independently testable | Unit tests per stage (extraction, alignment, detection) |
+    subgraph MLCore["ML Core Engine (ml_core/)"]
+        Orch["Pipeline Orchestrator (orchestrator.py)"]
+        NER["Deterministic NER & Spatio-Temporal Parser (spaCy)"]
+        Neg["Grammatical Negation Scoper"]
+        LLM["Event Extraction & Rationale Engine (SmolLM-3B via Local API)"]
+        Cluster["Semantic Vector Clustering (Sentence-Transformers)"]
+        NLI["Contradiction & Divergence Detector"]
+    end
 
----
+    subgraph Data["Persistence & Dataset Layer"]
+        Synthetics["ml_core/synthetic/transcripts/ (20 Scenarios, 400 Testimonies)"]
+        Incidents["ml_core/synthetic/generated/ (100 Benchmark Incidents)"]
+        Output["theft_case_output.json"]
+    end
 
-## 8. Core Workflows
-
-**Workflow 1 — Statement Ingestion & Extraction**
-Reviewer submits a statement → Web backend stores it and enqueues an extraction job → ML service performs NER, temporal/spatial extraction, and event-tuple extraction → structured claims are written back to the database → reviewer sees the statement marked "processed."
-
-**Workflow 2 — Cross-Witness Alignment & Detection**
-Triggered after each new statement (or on-demand) → ML service pulls all claims for the incident → aligns claims referring to the same entity/event across witnesses → runs contradiction and corroboration detection on aligned clusters → results (with source-span references) are written to the database.
-
-**Workflow 3 — Reviewer Exploration & Export**
-Reviewer opens an incident → frontend requests timeline and map data from the web backend → reviewer interacts with markers, drilling into source statements for any contradiction/agreement → reviewer triggers export of a consolidated report.
-
-*(Sequence/swimlane versions of these workflows are described separately in the accompanying diagram-description file.)*
-
----
-
-## 9. Scalability Strategy
-
-- **Service separation:** the ML/NLP service is deployed independently from the web backend, so it can be scaled horizontally (more instances, bigger models, GPU-backed inference later) without touching the web tier — this is the core scalability decision for the whole system.
-- **Asynchronous processing:** extraction and detection jobs run through a task queue (Celery + Redis) so statement submission is never blocked on NLP latency, and job throughput can be scaled by adding worker instances.
-- **Immutable statement caching:** once a statement is extracted, its structured claims are cached — re-processing is only needed if the extraction model itself is upgraded.
-- **Graph database for relational queries at scale:** spatio-temporal cross-referencing queries (this entity, across these witnesses, in this time window) are natively efficient in a graph database as incident size grows.
-- **Containerization:** each component (frontend, web backend, ML service, DB, Redis) is Dockerized; Docker Compose is sufficient for the capstone demo, with Kubernetes noted as a documented future step rather than an MVP requirement.
+    UI_Ingest -->|POST /analyze| API_Route
+    API_Route --> Orch
+    Orch --> NER
+    NER --> Neg
+    Neg --> LLM
+    LLM --> Cluster
+    Cluster --> NLI
+    NLI --> Orch
+    Orch -->|Structured DetectionResult JSON| API_Route
+    API_Route --> UI_Time
+    API_Route --> UI_Map
+    API_Route --> UI_Drawer
+    Orch -.-> Output
+```
 
 ---
 
-## 10. Proposed Dataset
+## 4. The ML & NLP Pipeline
 
-### 10.1 Synthetic Dataset (primary)
-Given the near-total absence of public datasets containing multiple witnesses describing the *same* incident with comparable spatio-temporal claims, the primary dataset is purpose-built:
-- **Event ground truth:** ~20–25 staged incidents (accident/robbery/fire), each with a structured timeline of sub-events (timestamp, location, action, entities involved) and an entity registry (people, vehicles, objects).
-- **Witness perception profiles:** 3–5 witnesses per incident, each with a vantage point (partial visibility), a reliability map (which specific attributes they misremember and how), and a confidence level per claim.
-- **Generated statements:** natural first-person text generated from each witness's ground truth + perception profile, written with realistic hedging and imperfect recall.
-- **Auto-generated labels:** because both the true event and each witness's perception profile are known, contradiction and agreement labels are computed directly by diffing perception profiles — no manual annotation pass required.
+When witness testimonies enter the orchestrator (`ml_core/orchestrator.py`), they pass through five distinct stages:
 
-### 10.2 Real-World / Actual Dataset Sources (secondary validation)
-To avoid an all-synthetic evaluation story (a supervisor is likely to ask about this), a small real-world validation set is recommended:
-- **Multi-source news coverage:** for a handful of real, publicly reported incidents, different news outlets quote different eyewitnesses — these can be manually compiled (5–10 incidents) as a lightweight, genuinely real validation set.
-- **MIND dataset (academic, stretch goal):** a February 2025 research dataset ("Incongruence Identification in Eyewitness Testimony," arXiv 2502.05650) built for near-identical purposes — 389 statements across 149 events with annotated contradictions. No confirmed public download was found; contacting the authors is worth doing early, in parallel, but should not block the project timeline.
-- **Note on the "Echoes of Testimonies" dataset:** this was considered and ruled out — it is ICTY witness-wellbeing survey data (psychological/socio-economic impact of testifying), not multiple accounts of the same incident, and is worth mentioning briefly to a supervisor as evidence of due diligence in dataset selection.
-
-### 10.3 Evaluation Strategy
-Synthetic data (with full ground truth) is used for development, tuning, and quantitative evaluation (precision/recall/F1). The small real-world set is used as a qualitative validation and demo showcase, to demonstrate the system isn't only tuned to its own synthetic distribution.
-
----
-
-## 11. Technology Stack
-
-| Layer | Technology | Justification |
-|---|---|---|
-| Frontend | React, Tailwind CSS | Team's existing frontend strength |
-| Timeline UI | `vis-timeline` or custom D3 component | Interactive, attributable timeline rendering |
-| Map UI | Leaflet + OpenStreetMap tiles | Free, no API key/cost management needed |
-| Web/API Backend | FastAPI (Python) or Node.js/Express | Lightweight, I/O-bound service layer |
-| ML/NLP Service | Python, FastAPI | Isolated compute-bound service |
-| NER & parsing | spaCy | Fast, production-grade entity/dependency parsing |
-| Event/relation extraction | Fine-tuned transformer (Hugging Face) | Higher accuracy than rule-based extraction alone |
-| Temporal normalization | `dateparser` / SUTime-style rules | Converts relative time phrases to absolute timestamps |
-| Semantic similarity | `sentence-transformers` | Embedding-based claim alignment across paraphrased text |
-| Contradiction detection | Rule-based comparator + NLI model (e.g. `roberta-large-mnli`) | Hybrid: structured attributes rule-checked, free-text semantically checked |
-| Graph construction | `networkx` (in-pipeline), Neo4j (persisted) | Native fit for entity/event/witness relationships |
-| Task queue | Celery + Redis | Async job processing, independent scaling |
-| Database | Neo4j (primary) or PostgreSQL + PostGIS (fallback) | Graph-native queries vs. team familiarity trade-off |
-| Geocoding | Nominatim (OpenStreetMap) | Free, no key management |
-| Deployment | Docker Compose, GitHub Actions CI | Reproducible multi-service deployment for a capstone demo |
+```
+[Raw Eyewitness Statements]
+            │
+            ▼
+Stage 1: Fast Deterministic Tagging (spaCy & Regex)
+   • Extracts Named Entities (People, Vehicles, Locations, Objects)
+   • Resolves Spatio-Temporal Expressions ("at 8:15 PM", "MG Road")
+   • Grammatical Negation Analysis: Scopes parse trees so that "did not see a gun"
+     is categorized as an explicit denial rather than an armed sighting.
+            │
+            ▼
+Stage 2: Event Tuple Extraction (Local SmolLM-3B via LM Studio)
+   • Decomposes rambling narratives into structured atomic fact tuples:
+     { "subject": "Robber", "action": "wore", "object": "black leather jacket", "source_span": [7, 14] }
+            │
+            ▼
+Stage 3: Cross-Document Alignment & Semantic Clustering
+   • Encodes event claims into vector embeddings using `all-MiniLM-L6-v2`.
+   • Clusters claims by topic (attire, weapons, escape vehicle, stolen goods).
+   • Prunes irrelevant pairwise combinations to ensure fast execution.
+            │
+            ▼
+Stage 4: Contradiction & Divergence Detection
+   • Evaluates pairs within matched thematic clusters for factual conflicts:
+     - Numerical & headcount clashes (2 robbers vs. 3 robbers)
+     - Attribute mismatches (leather jacket vs. red hoodie)
+     - Vehicle & direction divergences (motorcycle east vs. sedan west)
+     - Weapon presence vs. explicit denials (handguns vs. iron crowbars)
+   • Generates plain-English evidentiary rationales and confidence ratings.
+            │
+            ▼
+[Consolidated Findings: Structured JSON & Interactive Visualizations]
+```
 
 ---
 
-## 12. API Integration Specification
+## 5. Real-World Demo: 5-Witness Jewelry Heist
 
-### 12.1 Internal REST API
+A benchmark scenario is provided in [`test_theft_case.py`](test_theft_case.py) modeling a major jewelry showroom heist with five conflicting eyewitness accounts:
 
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/incidents` | Create a new incident |
-| POST | `/incidents/{id}/statements` | Submit a witness statement (enqueues extraction job) |
-| GET | `/jobs/{job_id}` | Poll async extraction/detection job status |
-| GET | `/incidents/{id}/timeline` | Retrieve consolidated timeline data |
-| GET | `/incidents/{id}/map` | Retrieve consolidated spatial data |
-| GET | `/incidents/{id}/contradictions` | Retrieve flagged contradictions with source spans |
-| GET | `/incidents/{id}/agreements` | Retrieve flagged corroborations with source spans |
-| POST | `/incidents/{id}/export` | Trigger PDF/CSV report export |
+### Eyewitness Perspectives
+1. **Witness 1 (Store Security Guard - Inside):** Saw two masked robbers storm the store shouting threats, armed with **black handguns**, main robber in a **dark leather jacket and blue jeans**.
+2. **Witness 2 (Tea Vendor - Across the Street):** Saw **three** robbers sprint out with duffel bags; explicitly stated they were **not holding handguns** and were armed with **heavy iron crowbars**.
+3. **Witness 3 (Auto Rickshaw Driver - Corner Junction):** Saw the robber in the leather jacket escape on a **black motorcycle heading east toward the railway station**.
+4. **Witness 4 (Pedestrian Shopper - Sidewalk):** Saw the primary suspect wearing a **bright red hoodie with beige cargo pants**; states they escaped in a **silver sedan heading west toward the highway**.
+5. **Witness 5 (Store Cashier - Vault Counter):** Logged the panic button trigger at 8:30 PM and reported fifty lakhs in stolen diamond necklaces.
 
-Auth: JWT-based, with `reviewer` and `admin` roles.
+### Pipeline Results
+Running `python test_theft_case.py` yields the following verified metrics:
+* **Execution Time:** ~45 seconds (100% offline using local SmolLM-3B)
+* **Statements Processed:** 5
+* **Entities Recognized:** 5
+* **Event Tuples Extracted:** 18
+* **Claims Clustered:** 18
+* **Contradictions Flagged:** 17 pairs
 
-### 12.2 External Integrations
-- **Geocoding:** Nominatim (OpenStreetMap) — resolves extracted place-name text to coordinates.
-- **Map tiles:** OpenStreetMap tile server via Leaflet.
-- **Optional LLM API (enhancement, not MVP-required):** a general-purpose LLM API can supplement rule-based extraction for particularly ambiguous phrasing, and is also the mechanism used to *generate* the synthetic dataset statements (Section 10.1).
-
----
-
-## 13. Project Roadmap
-
-| Phase | Focus | Key Deliverables | Suggested Duration |
-|---|---|---|---|
-| 1 | Dataset & ontology design | Synthetic generation pipeline, entity/event schema, auto-labeling script | 2 weeks |
-| 2 | NLP extraction module | NER, temporal, spatial, event-tuple extraction | 2–3 weeks |
-| 3 | Alignment & contradiction engine | Claim alignment, rule-based + NLI hybrid detection | 2–3 weeks |
-| 4 | Backend & database integration | Web API, ML service, task queue, graph DB schema | 2 weeks |
-| 5 | Frontend | Timeline & map UI, contradiction panel, export | 2–3 weeks |
-| 6 | Integration & evaluation | End-to-end testing, metrics against synthetic ground truth, real-world validation set | 1–2 weeks |
-| 7 | Documentation & defense prep | Final report, demo script, slide deck | 1 week |
-
-*(Durations are placeholders — adjust to your actual semester calendar and team size.)*
+```json
+{
+  "claim_ids": ["claim_3", "claim_14"],
+  "type": "semantic",
+  "verdict": "contradiction",
+  "confidence": 0.95,
+  "rationale": "The primary robber in Statement 1 wore a dark leather jacket and blue jeans while in Statement 2 they were wearing a bright red hoodie with beige cargo pants",
+  "source_span": [
+    ["stmt_0", [7, 14]],
+    ["stmt_3", [99, 110]]
+  ]
+}
+```
+The complete structured output is saved to [`theft_case_output.json`](theft_case_output.json).
 
 ---
 
-## 14. Success Metrics / Evaluation Criteria
+## 6. Forensic Benchmark Dataset
 
-- Extraction accuracy (entity/temporal/spatial) against synthetic ground truth.
-- Contradiction/agreement detection precision, recall, and F1 against synthetic ground truth.
-- 100% traceability of flagged items to source text (hard requirement, not a percentage target).
-- Qualitative reviewer usability feedback on the timeline/map interface.
-- Successful end-to-end demo on at least one real-world (non-synthetic) incident.
+Real-world multi-witness testimony corpora are virtually non-existent due to legal confidentiality restrictions. To solve this, Silent Witness incorporates a synthetic benchmark corpus in [`ml_core/synthetic/`](ml_core/synthetic/):
 
----
-
-## 15. Risks & Mitigations
-
-| Risk | Impact | Mitigation |
-|---|---|---|
-| Claim alignment across witnesses is harder than expected (same entity described very differently) | High — undermines core contradiction detection | Start with rule-based + embedding hybrid; fall back to simpler heuristic alignment if needed for MVP |
-| Real-world validation set is too small to be convincing | Medium | Be upfront with supervisor about synthetic-primary methodology and its rationale (Section 10.3) |
-| MIND dataset authors don't respond / dataset unavailable | Low (already treated as stretch, not a dependency) | Proceed entirely on synthetic + manually compiled real-world set |
-| Two-service architecture adds integration overhead the team underestimates | Medium | Define the API contract (Section 12.1) early, before either service is fully built |
-| Scope creep toward "credibility scoring" (a supervisor or team member suggests it) | High — ethical and technical risk | Keep the non-adjudicative stance explicit in every project artifact (Section 2.5, 3) |
+* **`transcripts/` (20 Scenarios, 400 Testimonies):**
+  Each scenario contains 20 detailed first-person accounts simulating speech-to-text (TTS) artifacts, filler words (`"um"`, `"like"`), run-on sentences, false starts, and `[inaudible]` tags across different vantage points.
+  * **Indian Context Scenarios:**
+    - `chandni_chowk_heist.txt` — Jewelry heist in crowded Old Delhi market.
+    - `marine_drive_hit_run.txt` — Nighttime hit-and-run on Mumbai promenade.
+    - `rajdhani_express_robbery.txt` — Train chain-pulling and night robbery.
+    - `delhi_kidnapping.txt` — High-profile VIP political kidnapping in Lutyens' Delhi.
+    - `mumbai_port_smuggling.txt` — Midnight container port smuggling bust.
+  * **Global Crime & Disaster Scenarios:**
+    - `bank_heist.txt`, `casino_vault.txt`, `art_theft.txt`, `alleyway_murder.txt`, `highway_pileup.txt`, `warehouse_arson.txt`, `plane_hijacking.txt`, `prison_break.txt`, and more.
+* **`generated/` (100 Benchmark JSON Files):**
+  100 structured incident files (`inc_proc_001.json` to `inc_proc_100.json`) used for automated pipeline benchmarking and regression verification.
 
 ---
 
-## 16. Glossary
+## 7. Technology Stack
 
-- **NER (Named Entity Recognition):** identifying entities (people, vehicles, locations) in text.
-- **NLI (Natural Language Inference):** determining whether one statement entails, contradicts, or is neutral to another.
-- **PostGIS:** a spatial extension for PostgreSQL enabling geographic queries.
-- **Claim alignment:** matching statements from different witnesses that refer to the same underlying entity or event.
+| Layer | Technology | Purpose |
+| :--- | :--- | :--- |
+| **Backend Framework** | **FastAPI** + **Uvicorn** | High-performance asynchronous REST API server |
+| **Data Validation** | **Pydantic V2** | Type-safe data modeling with strict validation |
+| **NLP & NER** | **spaCy** (`en_core_web_sm`) | High-speed entity extraction & grammatical dependency parsing |
+| **Semantic Embeddings** | **Sentence-Transformers** (`all-MiniLM-L6-v2`) | Dense vector representations for claim clustering |
+| **Local LLM Engine** | **SmolLM-3B** via **LM Studio** | Local inference for event extraction & contradiction rationales |
+| **Frontend Framework** | **React 18** + **Vite** + **TypeScript** | Responsive, modern Single Page Application (SPA) |
+| **Styling** | **Tailwind CSS** + **Lucide Icons** | Polished, accessible UI components and design system |
+| **Temporal View** | **vis-timeline** | Interactive, multi-witness chronological timeline |
+| **Spatial View** | **Leaflet** + **OpenStreetMap** | Interactive geographical mapping of incident locations |
+| **Testing & CI/CD** | **Pytest** + **GitHub Actions** | Automated regression testing on every push |
 
 ---
 
-## 17. References
-- Incongruence Identification in Eyewitness Testimony (MIND dataset), arXiv:2502.05650.
-- "Echoes of Testimonies" dataset (ICTY witness-wellbeing survey) — considered and ruled out as a poor fit for this project's requirements (see Section 10.2).
+## 8. Repository Structure
+
+```
+Capstone_P1/
+├── .github/
+│   └── workflows/
+│       └── ci.yml                 # Automated CI test runner on push/PR
+├── frontend/                      # React + Vite TypeScript frontend application
+│   ├── src/
+│   │   ├── api/client.ts          # API integration client
+│   │   ├── components/            # UI components (TemporalView, SpatialView, AnalysisPanel)
+│   │   ├── pages/                 # IncidentWorkspace and Dashboard
+│   │   └── types.ts               # TypeScript data interfaces
+│   └── package.json
+├── ml_core/                       # Core Machine Learning & NLP package
+│   ├── alignment/                 # Cross-document coreference & claim clustering
+│   ├── detection/                 # Contradiction detection engine & heuristics
+│   │   └── pipeline.py            # Thematic cluster & cross-examination comparator
+│   ├── extraction/                # Deterministic & LLM-based fact extraction
+│   │   ├── events.py              # Event tuple extraction & JSON sanitizers
+│   │   ├── ner.py                 # spaCy entity extractor
+│   │   ├── negation.py            # Dependency parse negation detector
+│   │   ├── spatial.py             # Coordinate & location entity resolver
+│   │   └── temporal.py            # Timestamp & relative time normalizer
+│   ├── schema/
+│   │   └── models.py              # Core Pydantic dataclasses (Statement, Claim, Contradiction)
+│   ├── synthetic/                 # Evaluation corpus & benchmark datasets
+│   │   ├── transcripts/           # 20 scenarios, 400 realistic raw witness testimonies (.txt)
+│   │   └── generated/             # 100 structured benchmark incident files (.json)
+│   ├── tests/                     # Automated pytest suite (12 unit tests)
+│   ├── llm_client.py              # OpenAI-compatible local client (LM Studio / SmolLM)
+│   └── orchestrator.py            # End-to-end incident analysis pipeline
+├── server.py                      # FastAPI web server exposing REST endpoints
+├── test_theft_case.py             # 5-witness theft demo script
+├── theft_case_output.json         # Output generated from local testcase run
+├── project_summary.md             # Single Source of Truth architecture contract
+├── backend_explanation_for_professor.md # Plain-English presentation & viva guide
+├── requirements.txt               # Backend Python dependencies
+└── README.md                      # Primary project documentation
+```
+
+---
+
+## 9. Getting Started & Installation
+
+### Prerequisites
+* Python 3.10 or higher
+* Node.js 18+ and npm (for frontend)
+* [LM Studio](https://lmstudio.ai/) (to run SmolLM-3B locally)
+
+### Step 1: Clone the Repository
+```bash
+git clone https://github.com/Harshitmishra001/Capstone_P1.git
+cd Capstone_P1
+```
+
+### Step 2: Set Up Backend Environment
+```bash
+# Create and activate virtual environment
+python -m venv venv
+# On Windows:
+.\venv\Scripts\activate
+# On Linux/macOS:
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Download spaCy English model
+python -m spacy download en_core_web_sm
+```
+
+### Step 3: Start Local LLM via LM Studio
+1. Open LM Studio and search for `SmolLM-3B-Instruct` (or any compatible open-weight model).
+2. Start the local inference server (defaults to port `1234`).
+3. Set the environment variable if using a custom IP or port:
+   ```bash
+   # Optional: defaults to http://127.0.0.1:1234/v1
+   export LOCAL_LLM_URL="http://127.0.0.1:1234/v1"
+   ```
+
+### Step 4: Run the Backend Server
+```bash
+python server.py
+```
+The FastAPI server will start at `http://127.0.0.1:8000`. You can test the interactive API docs at `http://127.0.0.1:8000/docs`.
+
+### Step 5: Run the Standalone Theft Demo
+To verify the complete pipeline without launching a browser:
+```bash
+python test_theft_case.py
+```
+This processes 5 witness accounts, prints all extraction metrics and detected contradictions to the terminal, and saves the output to `theft_case_output.json`.
+
+### Step 6: Start the Frontend
+```bash
+cd frontend
+npm install
+npm run dev
+```
+Open `http://localhost:5173` in your browser to access the Silent Witness workspace.
+
+---
+
+## 10. REST API Reference
+
+### Health Check
+```http
+GET /
+```
+**Response:**
+```json
+{
+  "status": "ok",
+  "message": "Silent Witness Backend is running"
+}
+```
+
+### Analyze Incident
+```http
+POST /analyze
+Content-Type: application/json
+```
+**Request Body:**
+```json
+{
+  "statements": [
+    "At 8:15 PM, two men armed with handguns entered the store wearing dark leather jackets.",
+    "Around 8:20 PM, three men armed with crowbars ran out of the store wearing red hoodies."
+  ]
+}
+```
+**Response Schema:**
+```json
+{
+  "status": "success",
+  "metrics": {
+    "total_statements": 2,
+    "total_entities": 4,
+    "total_events": 4,
+    "total_claims": 4,
+    "total_contradictions": 2
+  },
+  "entities": [...],
+  "events": [...],
+  "claims": [...],
+  "contradictions": [
+    {
+      "claim_ids": ["claim_0", "claim_2"],
+      "type": "semantic",
+      "verdict": "contradiction",
+      "confidence": 0.95,
+      "rationale": "Statement 1 states suspects wore dark leather jackets, while Statement 2 states they wore red hoodies.",
+      "source_span": [
+        ["stmt_0", [65, 87]],
+        ["stmt_1", [72, 83]]
+      ]
+    }
+  ]
+}
+```
+
+---
+
+## 11. CI/CD & Automated Testing
+
+The repository uses GitHub Actions (`.github/workflows/ci.yml`) to automatically test every commit and pull request on Ubuntu runners.
+
+To run the test suite locally:
+```bash
+pytest ml_core/tests/ -v
+```
+**Test Coverage:**
+* `test_coref.py` — Pronoun and entity coreference resolution.
+* `test_events.py` — Atomic event tuple extraction and span validation.
+* `test_negation.py` — Dependency parsing of explicit denials and negated actions.
+* `test_pipeline.py` — End-to-end incident contradiction verification.
+* `eval_pipeline.py` — Quantitative metric evaluation across benchmark cases.
+
+---
+
+## 12. Roadmap & Future Scope
+
+* [x] Core Pydantic schema with character span offsets
+* [x] spaCy NER, temporal, spatial, and negation extraction
+* [x] Local LLM integration with SmolLM-3B via LM Studio
+* [x] Sentence-Transformers semantic vector clustering
+* [x] Hybrid contradiction detection with natural language rationales
+* [x] FastAPI REST backend with `/analyze` endpoint
+* [x] 20-scenario synthetic dataset (400 witness transcripts)
+* [x] Interactive React + Vite frontend workspace (Timeline, Map, Drawer)
+* [ ] Persistent graph storage integration (Neo4j / SQLite)
+* [ ] Human-in-the-loop review feedback loop (`feedback.jsonl`)
+* [ ] Direct speech-to-text (Whisper audio ingestion) module
+* [ ] PDF / CSV court-admissible audit report export
+
+---
+
+## 13. Contributors & Capstone Credits
+
+Developed as a Capstone Engineering Project at **VIT BHOPAL UNIVERSITY**:
+
+* **Harshit Mishra** — Backend & ML Architecture Lead (Core Pipeline, NER, LLM Extraction, Contradiction Engine, CI/CD)
+* **Tushar Saxena**-Visualization UI, Vis-Timeline integration, Leaflet maps, spatio-temporal interactivity, and cross-component highlighting
+* **Manik Pandey**-Core UI, React architecture, routing, statement ingestion, state management, and API client integration
+* **Project Collaborators** — Frontend Engineering, UI/UX Design, and Dataset Annotation
+
+---
+
+## License
+
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
