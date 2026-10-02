@@ -52,7 +52,7 @@ export const getIncidents = async () => {
   return mockIncidents;
 };
 
-export const getIncidentData = async (id?: string) => {
+export const getIncidentData = async (_id?: string) => {
   return {
     statements: mockStatements,
     markers: mockMarkers,
