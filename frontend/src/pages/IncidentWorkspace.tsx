@@ -106,42 +106,85 @@ export const IncidentWorkspace: React.FC = () => {
             
             <div className="grid md:grid-cols-[1.3fr_1fr] gap-8">
               <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-lg p-6">
-                <h2 className="text-[13px] text-[var(--text-muted)] font-semibold mb-4 uppercase tracking-[0.3px]">Source testimony</h2>
+                <h2 className="text-[13px] text-[var(--text-muted)] font-semibold mb-4 uppercase tracking-[0.3px]">Source testimonies</h2>
                 
                 <div className="flex gap-2 mb-6">
                   <button className="px-4 py-2 rounded text-[13px] font-semibold bg-[var(--accent)] text-[var(--on-accent)] border border-[var(--accent)]">Paste testimony</button>
                   <button className="px-4 py-2 rounded text-[13px] font-semibold text-[var(--text-muted)] border border-[var(--border-hairline)]">Bulk upload (CSV/JSON)</button>
-                  <button className="px-4 py-2 rounded text-[13px] font-semibold text-[var(--text-muted)] border border-[var(--border-hairline)] opacity-40 cursor-not-allowed">Voice dictation</button>
                 </div>
                 
-                <textarea 
-                  className="w-full min-h-[120px] bg-[var(--bg-base)] border border-[var(--border-hairline)] rounded p-4 text-[15px] leading-[1.6] resize-y outline-none mb-2 text-[var(--text-primary)]"
-                  defaultValue="I was driving north on Main St. when the red sedan ran the red light and clipped the curb near the crosswalk."
-                />
-                
-                <div className="flex justify-between text-[12px] text-[var(--text-muted)] font-mono mb-6">
-                  <span>TOKEN COUNT: 34</span>
-                  <span>EST. CLAIMS: 4</span>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div>
-                    <label className="block text-[12px] text-[var(--text-muted)] uppercase tracking-wide mb-2">Witness pseudonym</label>
-                    <input type="text" defaultValue="Witness E (Cyclist)" className="w-full bg-[var(--bg-base)] border border-[var(--border-hairline)] rounded px-3 py-2 text-[15px] outline-none text-[var(--text-primary)]" />
+                <div id="testimony-container" className="flex flex-col gap-4 mb-4">
+                  {/* Default statements to show ML contradiction capability */}
+                  <div className="testimony-block relative">
+                    <div className="absolute top-3 right-3 text-[10px] font-mono text-[var(--text-muted)]">WITNESS A</div>
+                    <textarea 
+                      className="testimony-input w-full min-h-[100px] bg-[var(--bg-base)] border border-[var(--border-hairline)] rounded p-4 text-[15px] leading-[1.6] resize-y outline-none text-[var(--text-primary)]"
+                      defaultValue="Two masked robbers stormed in. The primary robber wore a dark leather jacket and had a silver gun."
+                    />
                   </div>
-                  <div>
-                    <label className="block text-[12px] text-[var(--text-muted)] uppercase tracking-wide mb-2">Incident category</label>
-                    <input type="text" defaultValue="Road accident" className="w-full bg-[var(--bg-base)] border border-[var(--border-hairline)] rounded px-3 py-2 text-[15px] outline-none text-[var(--text-primary)]" />
+                  <div className="testimony-block relative">
+                    <div className="absolute top-3 right-3 text-[10px] font-mono text-[var(--text-muted)]">WITNESS B</div>
+                    <textarea 
+                      className="testimony-input w-full min-h-[100px] bg-[var(--bg-base)] border border-[var(--border-hairline)] rounded p-4 text-[15px] leading-[1.6] resize-y outline-none text-[var(--text-primary)]"
+                      defaultValue="Three guys ran out of the store. The lead robber had a bright red hoodie."
+                    />
                   </div>
                 </div>
+
+                <button 
+                  onClick={() => {
+                    const container = document.getElementById('testimony-container');
+                    if (container) {
+                      const count = container.children.length;
+                      const div = document.createElement('div');
+                      div.className = "testimony-block relative mt-4";
+                      div.innerHTML = `
+                        <div class="absolute top-3 right-3 text-[10px] font-mono text-[var(--text-muted)]">WITNESS ${String.fromCharCode(65 + count)}</div>
+                        <textarea class="testimony-input w-full min-h-[100px] bg-[var(--bg-base)] border border-[var(--border-hairline)] rounded p-4 text-[15px] leading-[1.6] resize-y outline-none text-[var(--text-primary)]" placeholder="Enter witness statement..."></textarea>
+                      `;
+                      container.appendChild(div);
+                    }
+                  }}
+                  className="w-full py-2 border border-dashed border-[var(--border-hairline)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--text-muted)] transition rounded text-[13px] font-semibold mb-6 cursor-pointer"
+                >
+                  + Add another statement
+                </button>
                 
-                <button className="w-full py-3 bg-[var(--accent)] text-[var(--on-accent)] font-semibold text-[13px] rounded hover:opacity-90 transition mb-6">
+                <div className="mb-6">
+                  <label className="block text-[12px] text-[var(--text-muted)] uppercase tracking-wide mb-2">Incident Title</label>
+                  <input type="text" id="incident-cat" defaultValue="Downtown Convenience Store Robbery" className="w-full bg-[var(--bg-base)] border border-[var(--border-hairline)] rounded px-3 py-2 text-[15px] outline-none text-[var(--text-primary)]" />
+                </div>
+                
+                <button 
+                  onClick={async () => {
+                    const inputs = document.querySelectorAll('.testimony-input') as NodeListOf<HTMLTextAreaElement>;
+                    const statements = Array.from(inputs).map(i => i.value).filter(v => v.trim() !== "");
+                    const title = (document.getElementById('incident-cat') as HTMLInputElement).value;
+                    if (statements.length === 0) return;
+                    
+                    const btn = document.getElementById('extract-btn');
+                    if (btn) btn.innerText = 'Running ML Pipeline...';
+                    
+                    try {
+                      const { createIncident } = await import('../api/client');
+                      const res = await createIncident(title, statements);
+                      navigate(`/incidents/${res.id}/overview`);
+                    } catch (e) {
+                      console.error(e);
+                      alert('Failed to process testimony. Ensure the FastAPI backend is running.');
+                    } finally {
+                      if (btn) btn.innerText = 'Extract & align claims';
+                    }
+                  }}
+                  id="extract-btn"
+                  className="w-full py-3 bg-[var(--accent)] text-[var(--on-accent)] font-semibold text-[13px] rounded hover:opacity-90 transition mb-6 cursor-pointer"
+                >
                   Extract & align claims
                 </button>
                 
                 <div className="flex items-center gap-3 p-4 bg-[var(--bg-surface-2)] border border-[var(--border-hairline)] rounded text-[13px] text-[var(--text-secondary)]">
                   <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-corroborate)]"></span>
-                  spaCy NER + fastcoref + LLM event-tuple extraction active — 0 synthetic hallucinations flagged
+                  Connected to Local ML Pipeline — Processing cross-statement discrepancies
                 </div>
               </div>
               
@@ -191,59 +234,71 @@ export const IncidentWorkspace: React.FC = () => {
             <div className="flex justify-between items-start mb-8">
               <div>
                 <h1 className="font-['Hanken_Grotesk'] font-bold text-[26px]">Discrepancy Inspector</h1>
-                <p className="text-[15px] mt-2">Target variable: <b className="text-[var(--text-primary)]">Direction of travel</b></p>
+                <p className="text-[15px] mt-2">Target variable: <b className="text-[var(--text-primary)]">Statements Conflict</b></p>
               </div>
               <span className="text-[11px] px-3 py-1 border border-[var(--accent)] text-[var(--accent)] rounded-full font-bold">FR11 · Full traceability</span>
             </div>
             
-            <div className="grid md:grid-cols-[1.3fr_1fr] gap-8">
-              <div>
-                <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-lg p-6 mb-4">
-                  <div className="flex justify-between text-[12px] text-[var(--text-muted)] mb-4 font-semibold tracking-wide">
-                    <span>WITNESS A (DRIVER) · DEPO #1</span>
-                    <span>PARA 1, LINE 2</span>
+            {data.contradictions && data.contradictions.length > 0 ? (
+              <div className="flex flex-col gap-12">
+                {data.contradictions.map((c: any) => (
+                  <div key={c.id} className="grid md:grid-cols-[1.3fr_1fr] gap-8">
+                    <div>
+                      {c.claims.map((claim: any, idx: number) => (
+                        <div key={idx} className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-lg p-6 mb-4">
+                          <div className="flex justify-between text-[12px] text-[var(--text-muted)] mb-4 font-semibold tracking-wide uppercase">
+                            <span>{claim.witness}</span>
+                            <span>{claim.span ? `CHAR ${claim.span[0]}-${claim.span[1]}` : ''}</span>
+                          </div>
+                          <blockquote className="text-[17px] leading-[1.6] italic text-[var(--text-primary)]">
+                            {claim.fullText && claim.span && claim.span.length === 2 && claim.span[1] > 0 ? (
+                              <>
+                                {claim.fullText.substring(0, claim.span[0])}
+                                <mark className="bg-[var(--status-contradict)]/20 text-[var(--status-contradict)] px-1 rounded">
+                                  {claim.fullText.substring(claim.span[0], claim.span[1])}
+                                </mark>
+                                {claim.fullText.substring(claim.span[1])}
+                              </>
+                            ) : (
+                              <mark className="bg-[var(--status-contradict)]/20 text-[var(--status-contradict)] px-1 rounded">{claim.snippet}</mark>
+                            )}
+                          </blockquote>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div>
+                      <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-lg p-6 mb-6">
+                        <h2 className="text-[13px] text-[var(--text-muted)] font-semibold mb-4 uppercase tracking-[0.3px]">Coreference resolution</h2>
+                        <p className="text-[13px] text-[var(--text-secondary)]">
+                          Merged entity cluster <b className="text-[var(--text-primary)]">#E-12</b> — References unified across statements.
+                        </p>
+                      </div>
+                      
+                      <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-lg p-6 mb-6">
+                        <h2 className="text-[13px] text-[var(--text-muted)] font-semibold mb-4 uppercase tracking-[0.3px]">Contradiction likelihood</h2>
+                        <div className="h-1.5 bg-[var(--bg-base)] rounded-full overflow-hidden my-4">
+                          <div className="h-full bg-[var(--status-contradict)]" style={{ width: '95%' }}></div>
+                        </div>
+                        <p className="text-[12px] text-[var(--text-muted)]">
+                          {c.rationale}
+                        </p>
+                      </div>
+                      
+                      <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-lg p-6">
+                        <p className="text-[13px] text-[var(--text-muted)] border-l-2 border-[var(--accent)] pl-4 leading-[1.6]">
+                          This indicates a factual mismatch between two accounts — not a judgement on which witness is correct.
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <blockquote className="text-[17px] leading-[1.6] italic">
-                    "...it was <mark className="bg-[var(--status-contradict)]/20 text-[var(--status-contradict)] px-1 rounded">turning left</mark> onto 9th when it clipped..."
-                  </blockquote>
-                </div>
-                
-                <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-lg p-6">
-                  <div className="flex justify-between text-[12px] text-[var(--text-muted)] mb-4 font-semibold tracking-wide">
-                    <span>WITNESS B (PEDESTRIAN) · DEPO #2</span>
-                    <span>PARA 1, LINE 1</span>
-                  </div>
-                  <blockquote className="text-[17px] leading-[1.6] italic">
-                    "...the car <mark className="bg-[var(--status-contradict)]/20 text-[var(--status-contradict)] px-1 rounded">went straight through</mark> the junction."
-                  </blockquote>
-                </div>
+                ))}
               </div>
-              
-              <div>
-                <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-lg p-6 mb-6">
-                  <h2 className="text-[13px] text-[var(--text-muted)] font-semibold mb-4 uppercase tracking-[0.3px]">Coreference resolution</h2>
-                  <p className="text-[13px] text-[var(--text-secondary)]">
-                    Merged entity cluster <b className="text-[var(--text-primary)]">#E-12 "vehicle in collision"</b> — 2 references unified across statements.
-                  </p>
-                </div>
-                
-                <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-lg p-6 mb-6">
-                  <h2 className="text-[13px] text-[var(--text-muted)] font-semibold mb-4 uppercase tracking-[0.3px]">Contradiction likelihood</h2>
-                  <div className="h-1.5 bg-[var(--bg-base)] rounded-full overflow-hidden my-4">
-                    <div className="h-full bg-[var(--status-contradict)]" style={{ width: '91%' }}></div>
-                  </div>
-                  <p className="text-[12px] text-[var(--text-muted)]">
-                    p(contradiction) = 0.91 · RoBERTa-large-MNLI + isotonic calibration
-                  </p>
-                </div>
-                
-                <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-lg p-6">
-                  <p className="text-[13px] text-[var(--text-muted)] border-l-2 border-[var(--accent)] pl-4 leading-[1.6]">
-                    This indicates a factual mismatch between two accounts — not a judgement on which witness is correct.
-                  </p>
-                </div>
+            ) : (
+              <div className="p-8 text-center bg-[var(--bg-surface)] rounded-lg border border-[var(--border-hairline)] text-[var(--text-muted)]">
+                No discrepancies found in this case.
               </div>
-            </div>
+            )}
           </div>
         )}
 

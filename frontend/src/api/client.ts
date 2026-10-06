@@ -48,15 +48,44 @@ export const mockContradictions: Contradiction[] = [
   }
 ];
 
-export const getIncidents = async () => {
-  return mockIncidents;
+const API_BASE = 'http://localhost:8000/api';
+
+export const getIncidents = async (): Promise<IncidentSummary[]> => {
+  try {
+    const response = await fetch(`${API_BASE}/incidents`);
+    if (!response.ok) throw new Error('Failed to fetch incidents');
+    return response.json();
+  } catch (error) {
+    console.error(error);
+    return mockIncidents; // Fallback to mock if server is down
+  }
 };
 
-export const getIncidentData = async (_id?: string) => {
-  return {
-    statements: mockStatements,
-    markers: mockMarkers,
-    timeline: mockTimeline,
-    contradictions: mockContradictions
-  };
+export const getIncidentData = async (id?: string) => {
+  if (!id) return null;
+  try {
+    const response = await fetch(`${API_BASE}/incidents/${id}`);
+    if (!response.ok) throw new Error('Failed to fetch incident data');
+    return response.json();
+  } catch (error) {
+    console.error(error);
+    return {
+      statements: mockStatements,
+      markers: mockMarkers,
+      timeline: mockTimeline,
+      contradictions: mockContradictions
+    }; // Fallback to mock
+  }
+};
+
+export const createIncident = async (title: string, statements: string[]) => {
+  const response = await fetch(`${API_BASE}/incidents`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ title, statements }),
+  });
+  if (!response.ok) throw new Error('Failed to create incident');
+  return response.json();
 };
