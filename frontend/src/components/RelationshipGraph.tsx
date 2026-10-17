@@ -14,7 +14,7 @@ export const RelationshipGraph: React.FC<{ isFullScreen?: boolean; data?: any }>
       return { nodes: [], links: [] };
     }
     const nodesMap = new Map();
-    const links = [];
+    const links: any[] = [];
     
     // Create Witness nodes and Entity nodes
     rawData.raw_entities.forEach((ent: any) => {

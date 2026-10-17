@@ -78,6 +78,8 @@ def analyze_incident(raw_statements: List[str]) -> Dict[str, Any]:
     all_entities = []
     all_events = []
     all_occurrences = []
+    all_temporals = []
+    all_spatials = []
     
     # 1. Base Extraction Loop
     for idx, text in enumerate(raw_statements):
@@ -99,6 +101,8 @@ def analyze_incident(raw_statements: List[str]) -> Dict[str, Any]:
         
         # Merge all into the pool
         all_entities.extend(entities)
+        all_temporals.extend(temporals)
+        all_spatials.extend(spatials)
         
         # LLM Event Pass (SmolLM via LM Studio)
         try:
@@ -146,5 +150,7 @@ def analyze_incident(raw_statements: List[str]) -> Dict[str, Any]:
         },
         "entities": [asdict(e) for e in all_entities],
         "events": [asdict(ev) for ev in all_events],
+        "temporals": [asdict(t) for t in all_temporals],
+        "spatials": [asdict(s) for s in all_spatials],
         "contradictions": [asdict(d) for d in detections]
     }

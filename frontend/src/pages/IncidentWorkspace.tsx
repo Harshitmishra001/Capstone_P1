@@ -45,8 +45,21 @@ export const IncidentWorkspace: React.FC = () => {
     }
   }, [id]);
 
-  const handleExtract = (meta: any, text: string) => {
+  const handleExtract = async (meta: any, text: string) => {
     setIngestionDrawerOpen(false);
+    if (!text.trim()) return;
+    setIsExtracting(true);
+    try {
+      const currentStatements = witnesses.filter(w => w.trim() !== '');
+      const newStatements = [...currentStatements, text.trim()];
+      const title = meta?.witnessName ? `${incidentTitle || 'Investigation'} - ${meta.witnessName}` : (incidentTitle || 'New Investigation');
+      const res = await createIncident(title, newStatements);
+      navigate(`/incidents/${res.id}/overview`);
+    } catch {
+      alert('Failed to process testimony. Ensure the FastAPI backend is running on port 8000.');
+    } finally {
+      setIsExtracting(false);
+    }
   };
 
   const handleAddWitness = () => {
@@ -222,7 +235,7 @@ export const IncidentWorkspace: React.FC = () => {
 
                   {data.statements && data.statements.length > 0 ? (
                     <div className="flex flex-col gap-4">
-                      {data.statements.map((stmt: any, idx: number) => (
+                      {data.statements.map((stmt: any) => (
                         <div key={stmt.id} className="py-4 border-b border-[var(--border-hairline)] last:border-0">
                           <div className="font-semibold flex justify-between items-center text-[15px] mb-1">
                             {stmt.witness}

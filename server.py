@@ -4931,29 +4931,15 @@ def create_incident(req: IncidentRequest):
             from ml_core.orchestrator import analyze_incident
             # Run ML backend extraction
             results = analyze_incident(req.statements)
-            # Ensure it returned a valid object, otherwise trigger fallback
             if not results or "contradictions" not in results:
-                raise ValueError("Invalid ML output")
+                raise ValueError("Invalid ML pipeline output structure")
         except Exception as e:
-            print(f"ML Pipeline failed or unavailable ({e}). Loading fallback theft_case_output.json for demo...")
-            import json
-            import os
-            fallback_path = os.path.join(os.path.dirname(__file__), "theft_case_output.json")
-            if os.path.exists(fallback_path):
-                with open(fallback_path, "r") as f:
-                    results = json.load(f)
-                
-                # FIX: Overwrite req.statements so the spans match the JSON!
-                # We construct sentences long enough to contain the indices.
-                req.statements = [
-                    "I was stationed by the glass doors of the Tanishq showroom on MG Road. Two masked robbers stormed inside. The robbers ordered all customers to lie flat on the floor. The primary robber was wearing a dark leather jacket and blue jeans. " + " "*500,
-                    "I run. three robbers sprinted out of the store entrance carrying heavy duffel bags. " + " "*500,
-                    "the primary robber wore a dark leather jacket. the commotion erupted. the primary robber revved a motorcycle. the primary robber headed... the primary robber fled. " + " "*500,
-                    "I was walking along MG Road. the thieves dashed. The primary robber was wearing a bright red hoodie with beige cargo pants. " + " "*500,
-                    "I securing the cash register. The thieves took fifty lakhs worth of diamond necklaces and luxury watches from the vault counters. I emergency sirens began blaring. " + " "*500
-                ]
-            else:
-                raise e
+            import logging
+            logging.error(f"ML Pipeline execution failed: {e}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"ML Pipeline execution failed: {str(e)}. Please verify your local LLM server is reachable."
+            )
         
         inc_id = f"inc-{uuid.uuid4().hex[:6]}"
         
@@ -4962,7 +4948,6 @@ def create_incident(req: IncidentRequest):
             {"id": f"stmt_{i}", "witness": f"Witness {chr(65+i)}", "text": text, "status": "Processed"}
             for i, text in enumerate(req.statements)
         ]
-        
 
         # Map Contradictions
         ui_contradictions = []
@@ -4997,37 +4982,87 @@ def create_incident(req: IncidentRequest):
                 "claims": claims
             })
 
-        # Map Events to Timeline
+        # Map Events & Real Temporals to Timeline
         ui_timeline = []
         colors = ["border-blue-500", "border-red-500", "border-green-500", "border-purple-500", "border-yellow-500"]
         import datetime
+
+        stmt_temporals = {}
+        for t_ref in results.get("temporals", []):
+            s_id = t_ref.get("source_statement_id", "")
+            if s_id and s_id not in stmt_temporals:
+                stmt_temporals[s_id] = t_ref.get("resolved_time") or t_ref.get("text")
+
         for i, ev in enumerate(results.get("events", [])):
-            stmt_idx = int(ev.get("source_statement_id", "stmt_0").split('_')[-1])
+            stmt_id = ev.get("source_statement_id", "stmt_0")
+            stmt_idx = int(stmt_id.split('_')[-1]) if '_' in stmt_id else 0
             witness_name = f"Witness {chr(65+stmt_idx)}"
-            # Generate sequential dummy timestamps spaced by 1 minute
-            t = datetime.datetime.now() - datetime.timedelta(minutes=30 - i)
+            
+            # Use real resolved timestamp if extracted, else attributable offset
+            time_val = stmt_temporals.get(stmt_id)
+            if not time_val:
+                time_val = f"{datetime.date.today().isoformat()}T14:{min(i*2, 58):02d}:00"
+            elif "T" not in str(time_val):
+                time_val = f"{datetime.date.today().isoformat()}T{time_val}"
+
             ui_timeline.append({
                 "id": f"ev_{i}",
-                "content": f"{ev.get('subject', 'Unknown')} {ev.get('action', 'did')} {ev.get('object', '')}",
-                "start": t.isoformat(),
+                "content": f"{ev.get('subject', 'Suspect')} {ev.get('action', 'did')} {ev.get('object', '')}".strip(),
+                "start": str(time_val),
                 "witness": witness_name,
                 "className": f"border-l-4 {colors[stmt_idx % len(colors)]} bg-[var(--bg-surface)] text-[var(--text-primary)]"
             })
             
-        # Map Entities to MapMarkers
+        # Map Real Extracted Locations to MapMarkers
+        KNOWN_COORDINATES = {
+            "mg road": (12.9750, 77.6069),
+            "commercial street": (12.9822, 77.6083),
+            "indiranagar": (12.9784, 77.6408),
+            "chickpet": (12.9698, 77.5765),
+            "koramangala": (12.9352, 77.6245),
+            "tanishq": (12.9752, 77.6072),
+            "marine drive": (18.9432, 72.8230),
+            "mumbai": (18.9220, 72.8347),
+            "mumbai port": (18.9500, 72.8500),
+            "chandni chowk": (28.6506, 77.2303),
+            "delhi": (28.6139, 77.2090),
+            "lutyens": (28.6000, 77.2100),
+            "main st": (40.7128, -74.0060)
+        }
+
         ui_markers = []
-        base_lat, base_lng = 40.7128, -74.0060 # Base coordinate for MG Road
-        for i, ent in enumerate(results.get("entities", [])):
-            if ent.get("label") in ["LOCATION", "FACILITY"]:
-                stmt_idx = int(ent.get("source_statement_id", "stmt_0").split('_')[-1])
-                ui_markers.append({
-                    "id": f"m_{i}",
-                    "lat": base_lat + (i * 0.0005),
-                    "lng": base_lng + (i * 0.0005),
-                    "label": ent.get("text", "Location"),
-                    "witness": f"Witness {chr(65+stmt_idx)}",
-                    "color": "blue"
-                })
+        locations_seen = set()
+        candidate_locs = []
+        for s in results.get("spatials", []):
+            candidate_locs.append((s.get("text", ""), s.get("source_statement_id", "stmt_0")))
+        for ent in results.get("entities", []):
+            if ent.get("label") in ["LOCATION", "FACILITY", "GPE", "LOC"]:
+                candidate_locs.append((ent.get("text", ""), ent.get("source_statement_id", "stmt_0")))
+
+        for i, (loc_text, s_id) in enumerate(candidate_locs):
+            clean_name = loc_text.strip().lower()
+            if not clean_name or clean_name in locations_seen:
+                continue
+            locations_seen.add(clean_name)
+            
+            coords = None
+            for key, (lat, lng) in KNOWN_COORDINATES.items():
+                if key in clean_name or clean_name in key:
+                    coords = (lat, lng)
+                    break
+                    
+            if not coords:
+                coords = (12.9750 + (i * 0.001), 77.6069 + (i * 0.001))
+
+            stmt_idx = int(s_id.split('_')[-1]) if '_' in s_id else 0
+            ui_markers.append({
+                "id": f"m_{i}",
+                "lat": coords[0],
+                "lng": coords[1],
+                "label": loc_text,
+                "witness": f"Witness {chr(65+stmt_idx)}",
+                "color": "blue"
+            })
 
         # Save to DB
         new_summary = {
