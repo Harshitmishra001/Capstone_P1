@@ -5220,10 +5220,31 @@ def create_incident(req: IncidentRequest):
         using_fallback = False
         try:
             from ml_core.orchestrator import analyze_incident
+<<<<<<< HEAD
+            # Run ML backend extraction
+            results = analyze_incident(req.statements)
+=======
             results = analyze_incident(req.statements, incident_id=None)
+>>>>>>> 74a32c10a7dcecca1d4af3e281026e77ddfe8070
             if not results or "contradictions" not in results:
-                raise ValueError("Invalid ML output")
+                raise ValueError("Invalid ML pipeline output structure")
         except Exception as e:
+<<<<<<< HEAD
+            import logging
+            logging.error(f"ML Pipeline execution failed: {e}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"ML Pipeline execution failed: {str(e)}. Please verify your local LLM server is reachable."
+            )
+        
+        inc_id = f"inc-{uuid.uuid4().hex[:6]}"
+        
+        # Map statements
+        ui_statements = [
+            {"id": f"stmt_{i}", "witness": f"Witness {chr(65+i)}", "text": text, "status": "Processed"}
+            for i, text in enumerate(req.statements)
+        ]
+=======
             print(f"ML Pipeline unavailable ({e}). Using theft_case_output.json fallback...")
             using_fallback = True
             import json as _j, os as _o
@@ -5234,12 +5255,97 @@ def create_incident(req: IncidentRequest):
             else:
                 raise HTTPException(status_code=503,
                     detail="ML pipeline unavailable and no fallback file found.")
+>>>>>>> 74a32c10a7dcecca1d4af3e281026e77ddfe8070
 
         inc_id, summary, data = _ml_results_to_ui(req.statements, req.title, results)
 
+<<<<<<< HEAD
+        # Map Events & Real Temporals to Timeline
+        ui_timeline = []
+        colors = ["border-blue-500", "border-red-500", "border-green-500", "border-purple-500", "border-yellow-500"]
+        import datetime
+
+        stmt_temporals = {}
+        for t_ref in results.get("temporals", []):
+            s_id = t_ref.get("source_statement_id", "")
+            if s_id and s_id not in stmt_temporals:
+                stmt_temporals[s_id] = t_ref.get("resolved_time") or t_ref.get("text")
+
+        for i, ev in enumerate(results.get("events", [])):
+            stmt_id = ev.get("source_statement_id", "stmt_0")
+            stmt_idx = int(stmt_id.split('_')[-1]) if '_' in stmt_id else 0
+            witness_name = f"Witness {chr(65+stmt_idx)}"
+            
+            # Use real resolved timestamp if extracted, else attributable offset
+            time_val = stmt_temporals.get(stmt_id)
+            if not time_val:
+                time_val = f"{datetime.date.today().isoformat()}T14:{min(i*2, 58):02d}:00"
+            elif "T" not in str(time_val):
+                time_val = f"{datetime.date.today().isoformat()}T{time_val}"
+
+            ui_timeline.append({
+                "id": f"ev_{i}",
+                "content": f"{ev.get('subject', 'Suspect')} {ev.get('action', 'did')} {ev.get('object', '')}".strip(),
+                "start": str(time_val),
+                "witness": witness_name,
+                "className": f"border-l-4 {colors[stmt_idx % len(colors)]} bg-[var(--bg-surface)] text-[var(--text-primary)]"
+            })
+            
+        # Map Real Extracted Locations to MapMarkers
+        KNOWN_COORDINATES = {
+            "mg road": (12.9750, 77.6069),
+            "commercial street": (12.9822, 77.6083),
+            "indiranagar": (12.9784, 77.6408),
+            "chickpet": (12.9698, 77.5765),
+            "koramangala": (12.9352, 77.6245),
+            "tanishq": (12.9752, 77.6072),
+            "marine drive": (18.9432, 72.8230),
+            "mumbai": (18.9220, 72.8347),
+            "mumbai port": (18.9500, 72.8500),
+            "chandni chowk": (28.6506, 77.2303),
+            "delhi": (28.6139, 77.2090),
+            "lutyens": (28.6000, 77.2100),
+            "main st": (40.7128, -74.0060)
+        }
+
+        ui_markers = []
+        locations_seen = set()
+        candidate_locs = []
+        for s in results.get("spatials", []):
+            candidate_locs.append((s.get("text", ""), s.get("source_statement_id", "stmt_0")))
+        for ent in results.get("entities", []):
+            if ent.get("label") in ["LOCATION", "FACILITY", "GPE", "LOC"]:
+                candidate_locs.append((ent.get("text", ""), ent.get("source_statement_id", "stmt_0")))
+
+        for i, (loc_text, s_id) in enumerate(candidate_locs):
+            clean_name = loc_text.strip().lower()
+            if not clean_name or clean_name in locations_seen:
+                continue
+            locations_seen.add(clean_name)
+            
+            coords = None
+            for key, (lat, lng) in KNOWN_COORDINATES.items():
+                if key in clean_name or clean_name in key:
+                    coords = (lat, lng)
+                    break
+                    
+            if not coords:
+                coords = (12.9750 + (i * 0.001), 77.6069 + (i * 0.001))
+
+            stmt_idx = int(s_id.split('_')[-1]) if '_' in s_id else 0
+            ui_markers.append({
+                "id": f"m_{i}",
+                "lat": coords[0],
+                "lng": coords[1],
+                "label": loc_text,
+                "witness": f"Witness {chr(65+stmt_idx)}",
+                "color": "blue"
+            })
+=======
         if using_fallback:
             # Mark in the summary so the UI can show a banner
             summary["status"] = "Demo (Fallback)"
+>>>>>>> 74a32c10a7dcecca1d4af3e281026e77ddfe8070
 
         _db_save_incident(summary, data)
         return {"id": inc_id, "summary": summary}

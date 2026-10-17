@@ -84,8 +84,13 @@ def analyze_incident(raw_statements: List[str], incident_id: str = None) -> Dict
     all_occurrences = []
     all_temporals = []
     all_spatials = []
+<<<<<<< HEAD
+    
+    # 1. Base Extraction Loop
+=======
 
     # 1. Base Extraction Loop — single pass collecting everything
+>>>>>>> 74a32c10a7dcecca1d4af3e281026e77ddfe8070
     for idx, text in enumerate(raw_statements):
         stmt = Statement(
             id=f"stmt_{idx}",
@@ -107,7 +112,13 @@ def analyze_incident(raw_statements: List[str], incident_id: str = None) -> Dict
         # Intra-document coreference resolution
         entities = resolve_single_document_coref(stmt, entities)
         all_entities.extend(entities)
+<<<<<<< HEAD
+        all_temporals.extend(temporals)
+        all_spatials.extend(spatials)
+        
+=======
 
+>>>>>>> 74a32c10a7dcecca1d4af3e281026e77ddfe8070
         # LLM Event Pass (SmolLM via LM Studio)
         try:
             events, occurrences = extract_events_llm(stmt, call_local_llm, sample_count=1)
@@ -157,9 +168,17 @@ def analyze_incident(raw_statements: List[str], incident_id: str = None) -> Dict
             "total_claims": len(claims),
             "total_contradictions": len(detections)
         },
+<<<<<<< HEAD
+        "entities": [asdict(e) for e in all_entities],
+        "events": [asdict(ev) for ev in all_events],
+        "temporals": [asdict(t) for t in all_temporals],
+        "spatials": [asdict(s) for s in all_spatials],
+        "contradictions": [asdict(d) for d in detections]
+=======
         "entities":    [asdict(e) for e in all_entities],
         "events":      [asdict(ev) for ev in all_events],
         "contradictions": [asdict(d) for d in detections],
         "temporals":   [asdict(t) for t in all_temporals],
         "spatials":    [asdict(s) for s in all_spatials],
+>>>>>>> 74a32c10a7dcecca1d4af3e281026e77ddfe8070
     }

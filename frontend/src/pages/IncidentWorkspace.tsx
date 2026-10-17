@@ -165,6 +165,24 @@ export const IncidentWorkspace: React.FC = () => {
     }
   }, [id]);
 
+<<<<<<< HEAD
+  const handleExtract = async (meta: any, text: string) => {
+    setIngestionDrawerOpen(false);
+    if (!text.trim()) return;
+    setIsExtracting(true);
+    try {
+      const currentStatements = witnesses.filter(w => w.trim() !== '');
+      const newStatements = [...currentStatements, text.trim()];
+      const title = meta?.witnessName ? `${incidentTitle || 'Investigation'} - ${meta.witnessName}` : (incidentTitle || 'New Investigation');
+      const res = await createIncident(title, newStatements);
+      navigate(`/incidents/${res.id}/overview`);
+    } catch {
+      alert('Failed to process testimony. Ensure the FastAPI backend is running on port 8000.');
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+=======
   // Compute SHA-256 for chain-of-custody display when data loads
   useEffect(() => {
     if (!data || !id) return;
@@ -176,6 +194,7 @@ export const IncidentWorkspace: React.FC = () => {
         );
       });
   }, [data, id]);
+>>>>>>> 74a32c10a7dcecca1d4af3e281026e77ddfe8070
 
   const handleExtract = (_meta: any, _text: string) => setIngestionDrawerOpen(false);
   const handleAddWitness = () => setWitnesses(prev => [...prev, '']);
