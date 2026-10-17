@@ -1,3 +1,14 @@
+<<<<<<< HEAD
+=======
+# Database
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+>>>>>>> 74a32c10a7dcecca1d4af3e281026e77ddfe8070
 # Python
 __pycache__/
 *.py[cod]
@@ -7,6 +18,7 @@ __pycache__/
 env/
 venv/
 .venv/
+<<<<<<< HEAD
 ENV/
 build/
 develop-eggs/
@@ -45,5 +57,14 @@ frontend/.vite/
 .idea/
 *.swp
 *.swo
+=======
+
+# Node
+node_modules/
+dist/
+
+# Environment & OS
+.env
+>>>>>>> 74a32c10a7dcecca1d4af3e281026e77ddfe8070
 .DS_Store
 Thumbs.db

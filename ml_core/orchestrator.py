@@ -69,68 +69,87 @@ def local_rationale_gen(prompt: str) -> str:
         logger.warning(f"Local rationale gen failed: {e}")
         return "The witnesses provided conflicting details regarding this event."
 
-def analyze_incident(raw_statements: List[str]) -> Dict[str, Any]:
+def analyze_incident(raw_statements: List[str], incident_id: str = None) -> Dict[str, Any]:
     """
-    End-to-End Orchestrator:
+    End-to-End Orchestrator.
     Takes a list of raw string testimonies and runs the entire ML pipeline locally.
+    Returns entities, events, contradictions, temporals, and spatials.
     """
+    if incident_id is None:
+        incident_id = str(uuid.uuid4())
+
     all_statements = []
     all_entities = []
     all_events = []
     all_occurrences = []
     all_temporals = []
     all_spatials = []
+<<<<<<< HEAD
     
     # 1. Base Extraction Loop
+=======
+
+    # 1. Base Extraction Loop — single pass collecting everything
+>>>>>>> 74a32c10a7dcecca1d4af3e281026e77ddfe8070
     for idx, text in enumerate(raw_statements):
         stmt = Statement(
             id=f"stmt_{idx}",
             witness_id=f"wit_{idx}",
             text=text,
-            incident_id="demo_incident"
+            incident_id=incident_id
         )
         all_statements.append(stmt)
-        
-        # Local ML deterministic passes
-        entities = extract_entities(stmt)
+
+        # Deterministic spaCy passes
+        entities  = extract_entities(stmt)
         temporals = extract_temporal_references(stmt)
-        spatials = extract_spatial_references(stmt)
-        
-        # Coref (intra-doc)
+        spatials  = extract_spatial_references(stmt)
+
+        # Collect for return
+        all_temporals.extend(temporals)
+        all_spatials.extend(spatials)
+
+        # Intra-document coreference resolution
         entities = resolve_single_document_coref(stmt, entities)
-        
-        # Merge all into the pool
         all_entities.extend(entities)
+<<<<<<< HEAD
         all_temporals.extend(temporals)
         all_spatials.extend(spatials)
         
+=======
+
+>>>>>>> 74a32c10a7dcecca1d4af3e281026e77ddfe8070
         # LLM Event Pass (SmolLM via LM Studio)
         try:
-            events, occurrences = extract_events_llm(stmt, call_local_llm, sample_count=1) # Reduced to 1 for speed
+            events, occurrences = extract_events_llm(stmt, call_local_llm, sample_count=1)
         except Exception as e:
             logger.error(f"Event extraction failed for {stmt.id}: {e}")
             events, occurrences = [], []
-            
+
+        # Attach first temporal/spatial anchor to each event if available
+        for ev in events:
+            if temporals and ev.time_ref is None:
+                ev.time_ref = temporals[0]
+            if spatials and ev.location_ref is None:
+                ev.location_ref = spatials[0]
+
         events = apply_negation_scoping(stmt, events)
-        
         all_events.extend(events)
         all_occurrences.extend(occurrences)
-        
+
     # 2. Cross-Document Alignment
     all_entities = resolve_cross_statement_coref(all_statements, all_entities)
-    
+
     # Create claims (binding events + their local entities)
     claims = []
     for ev in all_events:
-        # Find entities in the same statement
         local_ents = [e for e in all_entities if e.source_statement_id == ev.source_statement_id]
         claims.append(Claim(id=str(uuid.uuid4()), event=ev, entities=local_ents))
-        
+
     # Cluster claims about the same incident
     claim_clusters = align_claims(claims)
-    
+
     # 3. Contradiction Detection
-    # Run the detection pipeline over the events strictly within aligned clusters
     detections = run_detection_pipeline(
         occurrences=all_occurrences,
         events=all_events,
@@ -138,7 +157,8 @@ def analyze_incident(raw_statements: List[str]) -> Dict[str, Any]:
         llm_rationale_gen=local_rationale_gen,
         claim_clusters=claim_clusters
     )
-    # 4. Format Output Graph
+
+    # 4. Format Output — include temporals and spatials for timeline/map wiring
     return {
         "status": "success",
         "metrics": {
@@ -148,9 +168,17 @@ def analyze_incident(raw_statements: List[str]) -> Dict[str, Any]:
             "total_claims": len(claims),
             "total_contradictions": len(detections)
         },
+<<<<<<< HEAD
         "entities": [asdict(e) for e in all_entities],
         "events": [asdict(ev) for ev in all_events],
         "temporals": [asdict(t) for t in all_temporals],
         "spatials": [asdict(s) for s in all_spatials],
         "contradictions": [asdict(d) for d in detections]
+=======
+        "entities":    [asdict(e) for e in all_entities],
+        "events":      [asdict(ev) for ev in all_events],
+        "contradictions": [asdict(d) for d in detections],
+        "temporals":   [asdict(t) for t in all_temporals],
+        "spatials":    [asdict(s) for s in all_spatials],
+>>>>>>> 74a32c10a7dcecca1d4af3e281026e77ddfe8070
     }

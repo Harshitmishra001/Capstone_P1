@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
+// @ts-ignore — react-force-graph-2d has no @types package
 import ForceGraph2D from 'react-force-graph-2d';
 import { Network, Maximize2, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -14,7 +15,12 @@ export const RelationshipGraph: React.FC<{ isFullScreen?: boolean; data?: any }>
       return { nodes: [], links: [] };
     }
     const nodesMap = new Map();
+<<<<<<< HEAD
     const links: any[] = [];
+=======
+    const links: Array<{ source: string; target: string; type: string }> = [];
+
+>>>>>>> 74a32c10a7dcecca1d4af3e281026e77ddfe8070
     
     // Create Witness nodes and Entity nodes
     rawData.raw_entities.forEach((ent: any) => {
