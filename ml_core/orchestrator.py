@@ -1,7 +1,7 @@
 import uuid
 import logging
 from dataclasses import asdict
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 from ml_core.schema.models import Statement, Entity, EventTuple, Claim, DetectionResult
 from ml_core.extraction.ner import extract_entities
@@ -69,12 +69,29 @@ def local_rationale_gen(prompt: str) -> str:
         logger.warning(f"Local rationale gen failed: {e}")
         return "The witnesses provided conflicting details regarding this event."
 
-def analyze_incident(raw_statements: List[str], incident_id: str = None) -> Dict[str, Any]:
+def analyze_incident(raw_statements: List[str], incident_id: Optional[str] = None) -> Dict[str, Any]:
     """
     End-to-End Orchestrator.
     Takes a list of raw string testimonies and runs the entire ML pipeline locally.
     Returns entities, events, contradictions, temporals, and spatials.
     """
+    if not raw_statements:
+        return {
+            "status": "success",
+            "metrics": {
+                "total_statements": 0,
+                "total_entities": 0,
+                "total_events": 0,
+                "total_claims": 0,
+                "total_contradictions": 0
+            },
+            "entities": [],
+            "events": [],
+            "contradictions": [],
+            "temporals": [],
+            "spatials": []
+        }
+
     if incident_id is None:
         incident_id = str(uuid.uuid4())
 
@@ -84,13 +101,8 @@ def analyze_incident(raw_statements: List[str], incident_id: str = None) -> Dict
     all_occurrences = []
     all_temporals = []
     all_spatials = []
-<<<<<<< HEAD
-    
-    # 1. Base Extraction Loop
-=======
 
     # 1. Base Extraction Loop — single pass collecting everything
->>>>>>> 74a32c10a7dcecca1d4af3e281026e77ddfe8070
     for idx, text in enumerate(raw_statements):
         stmt = Statement(
             id=f"stmt_{idx}",
@@ -112,13 +124,7 @@ def analyze_incident(raw_statements: List[str], incident_id: str = None) -> Dict
         # Intra-document coreference resolution
         entities = resolve_single_document_coref(stmt, entities)
         all_entities.extend(entities)
-<<<<<<< HEAD
-        all_temporals.extend(temporals)
-        all_spatials.extend(spatials)
-        
-=======
 
->>>>>>> 74a32c10a7dcecca1d4af3e281026e77ddfe8070
         # LLM Event Pass (SmolLM via LM Studio)
         try:
             events, occurrences = extract_events_llm(stmt, call_local_llm, sample_count=1)
@@ -168,17 +174,9 @@ def analyze_incident(raw_statements: List[str], incident_id: str = None) -> Dict
             "total_claims": len(claims),
             "total_contradictions": len(detections)
         },
-<<<<<<< HEAD
         "entities": [asdict(e) for e in all_entities],
         "events": [asdict(ev) for ev in all_events],
-        "temporals": [asdict(t) for t in all_temporals],
-        "spatials": [asdict(s) for s in all_spatials],
-        "contradictions": [asdict(d) for d in detections]
-=======
-        "entities":    [asdict(e) for e in all_entities],
-        "events":      [asdict(ev) for ev in all_events],
         "contradictions": [asdict(d) for d in detections],
-        "temporals":   [asdict(t) for t in all_temporals],
-        "spatials":    [asdict(s) for s in all_spatials],
->>>>>>> 74a32c10a7dcecca1d4af3e281026e77ddfe8070
+        "temporals": [asdict(t) for t in all_temporals],
+        "spatials": [asdict(s) for s in all_spatials]
     }

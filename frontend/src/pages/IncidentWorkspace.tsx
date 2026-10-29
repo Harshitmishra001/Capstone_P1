@@ -165,7 +165,18 @@ export const IncidentWorkspace: React.FC = () => {
     }
   }, [id]);
 
-<<<<<<< HEAD
+  // Compute SHA-256 for chain-of-custody display when data loads
+  useEffect(() => {
+    if (!data || !id) return;
+    crypto.subtle
+      .digest('SHA-256', new TextEncoder().encode(JSON.stringify(data) + id))
+      .then(buf => {
+        setCustodyHash(
+          Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
+        );
+      });
+  }, [data, id]);
+
   const handleExtract = async (meta: any, text: string) => {
     setIngestionDrawerOpen(false);
     if (!text.trim()) return;
@@ -182,21 +193,6 @@ export const IncidentWorkspace: React.FC = () => {
       setIsExtracting(false);
     }
   };
-=======
-  // Compute SHA-256 for chain-of-custody display when data loads
-  useEffect(() => {
-    if (!data || !id) return;
-    crypto.subtle
-      .digest('SHA-256', new TextEncoder().encode(JSON.stringify(data) + id))
-      .then(buf => {
-        setCustodyHash(
-          Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
-        );
-      });
-  }, [data, id]);
->>>>>>> 74a32c10a7dcecca1d4af3e281026e77ddfe8070
-
-  const handleExtract = (_meta: any, _text: string) => setIngestionDrawerOpen(false);
   const handleAddWitness = () => setWitnesses(prev => [...prev, '']);
   const handleWitnessChange = (idx: number, val: string) =>
     setWitnesses(prev => prev.map((w, i) => (i === idx ? val : w)));
