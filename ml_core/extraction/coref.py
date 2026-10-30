@@ -49,8 +49,9 @@ def resolve_single_document_coref(statement: Statement, entities: List[Entity]) 
 def resolve_cross_statement_coref(statements: List[Statement], all_entities: List[Entity]) -> List[Entity]:
     """
     Lightweight cross-statement entity resolution: for entities with matching type
-    + at least one shared attribute (e.g., 'sedan' + 'red'), link them into a shared EntityCluster 
-    with a unique ID. Does NOT merge attribute values.
+    + at least one shared attribute (e.g., 'sedan' + 'red') OR identical named entity mentions
+    (e.g., 'MG Road', 'Tanishq', 'John'), link them into a shared EntityCluster with a unique ID.
+    Does NOT merge attribute values.
     """
     parent = {}
     
@@ -98,7 +99,13 @@ def resolve_cross_statement_coref(statements: List[Statement], all_entities: Lis
                 
                 shared_attrs = set(attrs1.items()) & set(attrs2.items())
                 
-                if len(shared_attrs) > 0:
+                # Check for matching named entities (e.g. locations, companies, specific names)
+                t1 = e1.text.strip().lower()
+                t2 = e2.text.strip().lower()
+                pronouns = {"he", "she", "it", "they", "him", "her", "them", "someone", "person"}
+                name_match = bool(t1 == t2 and len(t1) > 2 and t1 not in pronouns)
+                
+                if len(shared_attrs) > 0 or name_match:
                     union(i, j)
                     
     cluster_mapping = {}

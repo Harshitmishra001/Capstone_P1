@@ -45,3 +45,14 @@ def test_cross_statement_coref():
     assert resolved[0].entity_cluster_id != resolved[3].entity_cluster_id
     
     assert "_doc_cluster_id" not in resolved[0].attributes
+
+def test_cross_statement_named_entity_coref():
+    # Named locations mentioned across witnesses without explicit attributes
+    loc1 = Entity(source_statement_id="s1", source_span=(10, 17), text="MG Road", label="LOCATION", attributes={})
+    loc2 = Entity(source_statement_id="s2", source_span=(5, 12), text="MG Road", label="LOCATION", attributes={})
+    loc3 = Entity(source_statement_id="s3", source_span=(8, 17), text="Indiranagar", label="LOCATION", attributes={})
+    
+    resolved = resolve_cross_statement_coref([], [loc1, loc2, loc3])
+    
+    assert resolved[0].entity_cluster_id == resolved[1].entity_cluster_id
+    assert resolved[0].entity_cluster_id != resolved[2].entity_cluster_id

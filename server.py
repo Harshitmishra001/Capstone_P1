@@ -4,9 +4,7 @@ import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Dict, Any
-
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 app = FastAPI(
     title="Silent Witness API",
@@ -5250,6 +5248,20 @@ def create_incident(req: IncidentRequest):
     except Exception as e:
         import traceback
         traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+class FeedbackRequest(BaseModel):
+    detection_result_id: str
+    reviewer_verdict: str = "confirmed"
+    note: Optional[str] = ""
+
+@app.post("/api/feedback")
+def submit_feedback(req: FeedbackRequest):
+    try:
+        from ml_core.feedback import record_feedback
+        entry = record_feedback(req.detection_result_id, req.reviewer_verdict, req.note or "")
+        return {"status": "success", "feedback": entry}
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
