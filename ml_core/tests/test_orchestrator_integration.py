@@ -90,3 +90,19 @@ def test_orchestrator_pipeline_with_mocked_llm(monkeypatch):
     assert "temporals" in result
     assert "spatials" in result
     assert len(result["events"]) >= 1
+
+
+def test_server_feedback_endpoint(client):
+    """Test human-in-the-loop feedback submission endpoint."""
+    feedback_payload = {
+        "detection_result_id": "c1",
+        "reviewer_verdict": "confirmed",
+        "note": "Verified against CCTV footage."
+    }
+    res = client.post("/api/feedback", json=feedback_payload)
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "success"
+    assert "feedback" in data
+    assert data["feedback"]["detection_result_id"] == "c1"
+    assert data["feedback"]["reviewer_verdict"] == "confirmed"

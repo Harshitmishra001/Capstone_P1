@@ -55,3 +55,7 @@ frontend/.vite/
 *.swo
 .DS_Store
 Thumbs.db
+
+# Logs & Local Cache
+*.log
+*.jsonl
