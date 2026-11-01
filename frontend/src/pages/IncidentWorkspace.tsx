@@ -6,7 +6,7 @@ import { SpatialView } from '../components/SpatialView';
 import { AnalysisPanel } from '../components/AnalysisPanel';
 import { RelationshipGraph } from '../components/RelationshipGraph';
 import { IngestionDrawer } from '../components/IngestionDrawer';
-import { getIncidentData, getIncidents, createIncident } from '../api/client';
+import { getIncidentData, getIncidents, createIncident, submitFeedback } from '../api/client';
 import { Loader2, Download, FileText, Network, Table } from 'lucide-react';
 
 // ── Download helpers ──────────────────────────────────────────────────────────
@@ -144,6 +144,16 @@ export const IncidentWorkspace: React.FC = () => {
   const [custodyHash, setCustodyHash]     = useState<string>('');
   const [witnesses, setWitnesses]         = useState<string[]>(['', '']);
   const [incidentTitle, setIncidentTitle] = useState('');
+  const [reviewedStatus, setReviewedStatus] = useState<Record<string, 'confirmed' | 'false_positive'>>({});
+
+  const handleReviewFeedback = async (conflictId: string, verdict: 'confirmed' | 'false_positive') => {
+    setReviewedStatus(prev => ({ ...prev, [conflictId]: verdict }));
+    try {
+      await submitFeedback(conflictId, verdict, 'Reviewed by investigator in Discrepancy Inceptor');
+    } catch (err) {
+      console.error('Failed to submit feedback:', err);
+    }
+  };
 
   const activeTab = tab;
 
@@ -458,6 +468,31 @@ export const IncidentWorkspace: React.FC = () => {
                           <p className="text-[13px] text-[var(--text-muted)] border-l-2 border-[var(--accent)] pl-3 leading-[1.6]">
                             Factual mismatch between accounts — not a judgement on correctness.
                           </p>
+                        </div>
+                        <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-lg p-5 mt-4">
+                          <h2 className="text-[11px] text-[var(--text-muted)] font-semibold mb-2.5 uppercase tracking-[0.3px]">Investigator Review</h2>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleReviewFeedback(c.id, 'confirmed')}
+                              className={`flex-1 py-1.5 px-3 rounded text-[12px] font-semibold border transition cursor-pointer ${
+                                reviewedStatus[c.id] === 'confirmed'
+                                  ? 'bg-[var(--status-corroborate)] text-white border-transparent'
+                                  : 'bg-[var(--bg-base)] border-[var(--border-hairline)] text-[var(--text-secondary)] hover:border-[var(--status-corroborate)]'
+                              }`}
+                            >
+                              {reviewedStatus[c.id] === 'confirmed' ? '✓ Confirmed' : 'Confirm'}
+                            </button>
+                            <button
+                              onClick={() => handleReviewFeedback(c.id, 'false_positive')}
+                              className={`flex-1 py-1.5 px-3 rounded text-[12px] font-semibold border transition cursor-pointer ${
+                                reviewedStatus[c.id] === 'false_positive'
+                                  ? 'bg-amber-600 text-white border-transparent'
+                                  : 'bg-[var(--bg-base)] border-[var(--border-hairline)] text-[var(--text-secondary)] hover:border-amber-500'
+                              }`}
+                            >
+                              {reviewedStatus[c.id] === 'false_positive' ? 'Flagged False Positive' : 'False Positive'}
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>

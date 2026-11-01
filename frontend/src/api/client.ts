@@ -89,3 +89,24 @@ export const createIncident = async (title: string, statements: string[]) => {
   if (!response.ok) throw new Error('Failed to create incident');
   return response.json();
 };
+
+
+export const submitFeedback = async (
+  detectionResultId: string, 
+  reviewerVerdict: 'confirmed' | 'false_positive' | 'missed', 
+  note: string = ''
+) => {
+  const response = await fetch(`${API_BASE}/feedback`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      detection_result_id: detectionResultId,
+      reviewer_verdict: reviewerVerdict,
+      note,
+    }),
+  });
+  if (!response.ok) throw new Error('Failed to submit reviewer feedback');
+  return response.json();
+};

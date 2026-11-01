@@ -24,3 +24,15 @@ def test_generate_nli_rationale():
     rat = generate_nli_rationale(c1, c2, mock_llm)
     assert "mistaken" not in rat
     assert "factual inconsistency" in rat
+
+
+def test_confidence_calibration():
+    from ml_core.detection.calibration import ConfidenceCalibrator
+    cal = ConfidenceCalibrator(fit_baseline=True)
+    assert cal.is_fitted is True
+    # Test monotonic prediction
+    cal_low = cal.calibrate(0.1)
+    cal_mid = cal.calibrate(0.5)
+    cal_high = cal.calibrate(0.9)
+    assert cal_low < cal_mid < cal_high
+    assert 0.0 <= cal_low <= 1.0

@@ -62,8 +62,8 @@ def local_rationale_gen(prompt: str) -> str:
                     d = json.loads(m.group(0))
                     if "rationale" in d:
                         return d["rationale"]
-            except Exception:
-                pass
+            except Exception as json_err:
+                logger.debug(f"Could not parse JSON regex rationale: {json_err}")
         return res.strip().strip('"').strip("'")
     except Exception as e:
         logger.warning(f"Local rationale gen failed: {e}")

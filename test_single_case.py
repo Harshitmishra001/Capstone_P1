@@ -2,6 +2,8 @@ import json
 import time
 from ml_core.orchestrator import analyze_incident
 
+from ml_core.llm_client import LM_STUDIO_URL
+
 def test_single_incident():
     print("=" * 60)
     print(" SILENT WITNESS — SINGLE CASE TEST")
@@ -16,7 +18,7 @@ def test_single_incident():
     for i, s in enumerate(statements, 1):
         print(f"Witness {i}: \"{s}\"")
         
-    print("\nProcessing pipeline with local ML + SmolLM-3B (http://172.19.121.89:1234)...")
+    print(f"\nProcessing pipeline with local ML + LLM ({LM_STUDIO_URL})...")
     start_time = time.time()
     
     result = analyze_incident(statements)
