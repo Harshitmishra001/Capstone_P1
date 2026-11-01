@@ -1,6 +1,9 @@
 import uuid
+import logging
 from typing import List, Dict, Optional
 from ml_core.schema.models import Entity, Statement
+
+logger = logging.getLogger(__name__)
 
 # Documentation of choice:
 # We attempt to use fastcoref for single-document coreference resolution.
@@ -40,8 +43,7 @@ def resolve_single_document_coref(statement: Statement, entities: List[Entity]) 
                     entity.attributes["_doc_cluster_id"] = c_id
                     break
     except Exception as e:
-        # Fallback if prediction fails
-        pass
+        logger.debug(f"Intra-document coreference resolution skipped/failed: {e}")
 
     return entities
 
