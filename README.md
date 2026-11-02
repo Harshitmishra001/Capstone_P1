@@ -384,6 +384,62 @@ Content-Type: application/json
 }
 ```
 
+### List Incidents
+```http
+GET /api/incidents
+```
+**Response:**
+```json
+[
+  {
+    "id": "inc-01",
+    "title": "Tanishq MG Road Jewelry Heist",
+    "type": "Investigation",
+    "date": "2026-09-27",
+    "status": "Reviewing",
+    "witnessCount": 5,
+    "contradictionCount": 3
+  }
+]
+```
+
+### Get Incident Details
+```http
+GET /api/incidents/{incident_id}
+```
+**Response:**
+Returns full incident payload with statements, markers, timeline, contradictions, raw entities, and events.
+
+### Create Incident & Run Pipeline
+```http
+POST /api/incidents
+Content-Type: application/json
+```
+**Request Body:**
+```json
+{
+  "title": "Jewelry Store Heist",
+  "statements": [
+    "At 8:15 PM, two men armed with handguns entered the showroom.",
+    "At 8:20 PM, three men armed with crowbars sprinted out of the store."
+  ]
+}
+```
+
+### Submit Reviewer Feedback
+```http
+POST /api/feedback
+Content-Type: application/json
+```
+**Request Body:**
+```json
+{
+  "detection_result_id": "c_0",
+  "reviewer_verdict": "confirmed",
+  "note": "Verified against CCTV log."
+}
+```
+
 ---
 
 ## 11. CI/CD & Automated Testing
@@ -392,14 +448,16 @@ The repository uses GitHub Actions (`.github/workflows/ci.yml`) to automatically
 
 To run the test suite locally:
 ```bash
-pytest ml_core/tests/ -v
+python -m pytest ml_core/tests/ -v
 ```
-**Test Coverage:**
-* `test_coref.py` — Pronoun and entity coreference resolution.
+**Test Coverage (26 Passing Tests):**
+* `test_coref.py` — Pronoun resolution and cross-statement named-entity clustering.
 * `test_events.py` — Atomic event tuple extraction and span validation.
-* `test_negation.py` — Dependency parsing of explicit denials and negated actions.
-* `test_pipeline.py` — End-to-end incident contradiction verification.
-* `eval_pipeline.py` — Quantitative metric evaluation across benchmark cases.
+* `test_negation.py` — Dependency parsing of explicit denials and action-level contradiction overrides.
+* `test_orchestrator_integration.py` — FastAPI server routes, end-to-end pipeline execution, and feedback recording.
+* `test_pipeline.py` — End-to-end incident contradiction verification, denylist guardrails, and isotonic calibration.
+* `test_spatial.py` — Deterministic offline landmark coordinate resolution.
+* `eval_pipeline.py` — Quantitative metric evaluation across 100 benchmark incidents.
 
 ---
 
@@ -413,10 +471,12 @@ pytest ml_core/tests/ -v
 * [x] FastAPI REST backend with `/analyze` endpoint
 * [x] 20-scenario synthetic dataset (400 witness transcripts)
 * [x] Interactive React + Vite frontend workspace (Timeline, Map, Drawer)
-* [ ] Persistent graph storage integration (Neo4j / SQLite)
-* [ ] Human-in-the-loop review feedback loop (`feedback.jsonl`)
+* [x] Persistent SQLite database storage (`silent_witness.db`)
+* [x] Human-in-the-loop review feedback loop (`feedback_log.jsonl`)
+* [x] Court-admissible evidentiary dossier (.txt), CSV, and Claim Graph exports
+* [x] Dynamic SHA-256 chain-of-custody cryptographic integrity hash
 * [ ] Direct speech-to-text (Whisper audio ingestion) module
-* [ ] PDF / CSV court-admissible audit report export
+* [ ] Multi-lingual Indian vernacular translation (Bhashini API)
 
 ---
 
