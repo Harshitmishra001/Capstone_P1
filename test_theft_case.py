@@ -2,6 +2,7 @@ import json
 import time
 from pathlib import Path
 from ml_core.orchestrator import analyze_incident
+from ml_core.llm_client import LM_STUDIO_URL
 
 OUTPUT_FILE = Path("theft_case_output.json")
 
@@ -55,7 +56,7 @@ def test_theft_case():
         print(f"\n[{role}]:\n\"{text}\"")
 
     print("\n" + "-" * 80)
-    print("Executing full NLP pipeline via local SmolLM-3B (http://172.19.121.89:1234)...")
+    print(f"Executing full NLP pipeline via local SmolLM-3B ({LM_STUDIO_URL})...")
     start_time = time.time()
 
     # Run the central orchestrator

@@ -10,24 +10,32 @@ logger = logging.getLogger(__name__)
 # If it fails to load or fails during inference, we fallback to a simple heuristic
 # or leave it unresolved, to ensure the pipeline doesn't completely break.
 
-try:
-    from fastcoref import FCoref
-    _coref_model = FCoref(device='cpu')  # load model
-except ImportError:
-    _coref_model = None
-except Exception:
-    _coref_model = None
+_coref_model = None
+_coref_attempted = False
+
+def get_coref_model():
+    """Lazily loads fastcoref on first invocation."""
+    global _coref_model, _coref_attempted
+    if not _coref_attempted:
+        _coref_attempted = True
+        try:
+            from fastcoref import FCoref
+            _coref_model = FCoref(device='cpu')
+        except Exception:
+            _coref_model = None
+    return _coref_model
 
 def resolve_single_document_coref(statement: Statement, entities: List[Entity]) -> List[Entity]:
     """
     Resolves pronouns and generic mentions within a single statement using fastcoref.
     If fastcoref is unavailable, returns the entities unmodified as a fallback.
     """
-    if _coref_model is None or not statement.text.strip():
+    model = get_coref_model()
+    if model is None or not statement.text.strip():
         return entities
 
     try:
-        preds = _coref_model.predict(texts=[statement.text])
+        preds = model.predict(texts=[statement.text])
         clusters = preds[0].get_clusters()
         
         doc_cluster_mapping = {}

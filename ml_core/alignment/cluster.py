@@ -8,14 +8,21 @@ from ml_core.schema.models import Claim
 
 logger = logging.getLogger(__name__)
 
-try:
-    from sentence_transformers import SentenceTransformer
-    from sklearn.cluster import AgglomerativeClustering
-    # Load lightweight local model automatically
-    model = SentenceTransformer('all-MiniLM-L6-v2')
-except ImportError:
-    logger.warning("Dependencies missing for claim clustering. Install sentence-transformers and scikit-learn.")
-    model = None
+_model = None
+_model_attempted = False
+
+def get_sentence_transformer():
+    """Lazily loads the SentenceTransformer model on first invocation."""
+    global _model, _model_attempted
+    if not _model_attempted:
+        _model_attempted = True
+        try:
+            from sentence_transformers import SentenceTransformer
+            _model = SentenceTransformer('all-MiniLM-L6-v2')
+        except Exception as e:
+            logger.warning(f"SentenceTransformer ('all-MiniLM-L6-v2') could not be loaded: {e}")
+            _model = None
+    return _model
 
 def align_claims(claims: List[Claim]) -> List[List[Claim]]:
     """
@@ -25,6 +32,7 @@ def align_claims(claims: List[Claim]) -> List[List[Claim]]:
     if not claims:
         return []
         
+    model = get_sentence_transformer()
     if not model or len(claims) == 1:
         # Fallback: each claim is its own cluster
         return [[c] for c in claims]
@@ -35,7 +43,7 @@ def align_claims(claims: List[Claim]) -> List[List[Claim]]:
     embeddings = model.encode(texts)
     
     # 2. Cluster using Agglomerative Clustering
-    # distance <= 0.65 groups related incident movements/actions across witnesses
+    from sklearn.cluster import AgglomerativeClustering
     clusterer = AgglomerativeClustering(
         n_clusters=None, 
         distance_threshold=0.65, 
