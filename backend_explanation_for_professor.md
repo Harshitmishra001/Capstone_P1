@@ -61,9 +61,11 @@ When you send a story to the backend via `POST /analyze`, it flows through 5 cle
 - **Contradiction Engine (`detection/`):** Evaluates whether two claims contradict each other and produces an impartial rationale.
 - **Pipeline Orchestrator (`orchestrator.py`):** The master function (`analyze_incident`) that connects all these modules into one single call.
 
-### B. The API Server (`server.py`)
+### B. The API Server & Persistence (`server.py`)
 - Built with **FastAPI**.
-- Exposes a `POST /analyze` endpoint.
+- **SQLite Database Persistence (`silent_witness.db`):** New incidents and witness statements are permanently saved across restarts.
+- **REST Endpoints:** Exposes `POST /analyze`, `GET /api/incidents`, `GET /api/incidents/{id}`, `POST /api/incidents`, and `POST /api/feedback`.
+- **Human-in-the-Loop Feedback:** Allows investigators to confirm contradictions or flag false positives directly from the UI, logging decisions to `feedback_log.jsonl`.
 - Has an interactive **Swagger UI** (`http://127.0.0.1:8000/docs`) where anyone can paste sample stories and click **Execute** to see the JSON output live.
 
 ### C. Large Forensic Testing Dataset (`ml_core/synthetic/`)
@@ -72,8 +74,8 @@ When you send a story to the backend via `POST /analyze`, it flows through 5 cle
 - Features **5 dedicated Indian scenarios** (Chandni Chowk jewelry heist, Marine Drive hit-and-run, Mumbai port smuggling, Rajdhani train robbery, Delhi VIP kidnapping).
 
 ### D. Automated CI/CD & Testing
-- **12 Unit Tests (`ml_core/tests/`):** 100% passing tests for data modeling, negation rules, and pipeline detection logic.
-- **GitHub Actions CI Pipeline (`.github/workflows/ci.yml`):** Automatically tests every commit on Ubuntu every time code is pushed.
+- **26 Comprehensive Tests (`ml_core/tests/`):** 100% passing tests covering deterministic NER, grammatical negation scoping, cross-statement coreference resolution, offline landmark spatial geocoding, isotonic calibration curves, and FastAPI integration.
+- **GitHub Actions CI Pipeline (`.github/workflows/ci.yml`):** Automatically validates Python test suites on Ubuntu and verifies React + Vite production builds on every push and PR.
 
 ---
 
@@ -85,8 +87,10 @@ When you send a story to the backend via `POST /analyze`, it flows through 5 cle
    - The AI never labels a witness as "lying" or "dishonest". It strictly presents the facts: *"Witness A stated X, whereas Witness B stated Y."*
 3. **Traceability:**
    - Every detected contradiction points directly to the exact words and character offsets in the original statements, so human investigators can verify the source in one click.
-4. **Production Readiness:**
-   - The code is modular, fully typed with Pydantic dataclasses, wrapped in a FastAPI REST server, and protected by automated CI/CD testing.
+4. **Cryptographic Chain of Custody & Legal Evidence:**
+   - Every incident computation is signed with a dynamic SHA-256 hash using the Web Crypto API, and can be exported as a court-admissible signed Evidentiary Dossier (.txt), CSV spreadsheet, or Claim Graph JSON.
+5. **Production Readiness:**
+   - The code is modular, fully typed with Pydantic dataclasses, backed by SQLite persistence, wrapped in a FastAPI REST server, and protected by automated CI/CD testing.
 
 ---
 
