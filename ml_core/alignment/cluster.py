@@ -18,7 +18,10 @@ def get_sentence_transformer():
         _model_attempted = True
         try:
             from sentence_transformers import SentenceTransformer
-            _model = SentenceTransformer('all-MiniLM-L6-v2')
+            try:
+                _model = SentenceTransformer('all-MiniLM-L6-v2', local_files_only=True)
+            except Exception:
+                _model = SentenceTransformer('all-MiniLM-L6-v2')
         except Exception as e:
             logger.warning(f"SentenceTransformer ('all-MiniLM-L6-v2') could not be loaded: {e}")
             _model = None
