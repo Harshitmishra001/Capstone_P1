@@ -91,6 +91,115 @@ Orchestrates the entire 5-stage ML pipeline. It ingests raw eyewitness testimoni
 
 * **500 Internal Server Error** — The ML pipeline encountered a fatal execution error (e.g., LM Studio is down).
 
+### 3. List Incidents
+`GET /api/incidents`
+
+Returns a list of all persisted incident summaries from the SQLite database.
+
+**Responses**
+* **200 OK**
+  * **Content-Type:** `application/json`
+  * **Example:**
+    ```json
+    [
+      {
+        "id": "inc-01",
+        "title": "Tanishq MG Road Jewelry Heist",
+        "type": "Investigation",
+        "date": "2026-09-27",
+        "status": "Reviewing",
+        "witnessCount": 5,
+        "contradictionCount": 3
+      }
+    ]
+    ```
+
+---
+
+### 4. Get Incident Detail
+`GET /api/incidents/{incident_id}`
+
+Retrieves complete structured case data for a specific incident, including statements, spatial map markers, chronological timeline items, and flagged contradictions.
+
+**Parameters**
+* `incident_id` (path, string, required) — The unique identifier of the incident (e.g., `inc-01`).
+
+**Responses**
+* **200 OK** — Returns incident data structure.
+* **404 Not Found** — If the incident ID does not exist in SQLite or the seeded registry.
+
+---
+
+### 5. Create & Persist Incident
+`POST /api/incidents`
+
+Ingests eyewitness statements, runs the full ML extraction and contradiction pipeline, formats the results for UI presentation (map markers, timeline events, clamped contradiction spans), and saves the incident into the persistent SQLite database (`silent_witness.db`).
+
+**Request Body**
+* **Content-Type:** `application/json`
+* **Schema:**
+  ```json
+  {
+    "title": "Jewelry Store Heist",
+    "statements": [
+      "At 8:15 PM, two men armed with handguns entered the showroom.",
+      "At 8:20 PM, three men armed with crowbars sprinted out of the store."
+    ]
+  }
+  ```
+
+**Responses**
+* **200 OK**
+  * **Example:**
+    ```json
+    {
+      "id": "inc-a1b2c3",
+      "summary": {
+        "id": "inc-a1b2c3",
+        "title": "Jewelry Store Heist",
+        "type": "Investigation",
+        "date": "2026-11-03",
+        "status": "Reviewing",
+        "witnessCount": 2,
+        "contradictionCount": 1
+      }
+    }
+    ```
+* **400 Bad Request** — Empty statement list provided.
+
+---
+
+### 6. Submit Human-in-the-Loop Feedback
+`POST /api/feedback`
+
+Records an investigator's review verdict (confirming a contradiction or flagging a false positive) for continuous evaluation and pipeline retraining. Appends to `feedback_log.jsonl`.
+
+**Request Body**
+* **Content-Type:** `application/json`
+* **Example:**
+  ```json
+  {
+    "detection_result_id": "c_0",
+    "reviewer_verdict": "confirmed",
+    "note": "Verified against physical evidence log."
+  }
+  ```
+
+**Responses**
+* **200 OK**
+  * **Example:**
+    ```json
+    {
+      "status": "success",
+      "feedback": {
+        "detection_result_id": "c_0",
+        "reviewer_verdict": "confirmed",
+        "note": "Verified against physical evidence log.",
+        "timestamp": "2026-11-03T18:00:00Z"
+      }
+    }
+    ```
+
 ---
 
 ## 🧩 Data Schemas / Models
